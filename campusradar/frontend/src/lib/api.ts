@@ -61,7 +61,7 @@ export async function api<T = unknown>(
     throw new ApiError(0, "Cannot reach CampusRadar server — is the backend running?");
   }
 
-  if (res.status === 401) {
+  if (res.status === 401 && !path.startsWith("/auth/")) {
     clearSession();
     if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
       window.location.href = "/login";

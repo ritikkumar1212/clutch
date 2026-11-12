@@ -145,15 +145,15 @@ async def main() -> None:
 
 
 # ----------------------------------------------------------------- helpers ---
-def rnd_email(prefix: str, domain: str = "uiet.ac.in") -> str:
-    return f"{prefix}.{uuid.uuid4().hex[:8]}@{domain}"
+def rnd_phone(seq: int) -> str:
+    return f"+9198{(int(uuid.uuid4().hex[:8], 16) % 9000000) + 1000000}{seq}"
 
 
-async def signup(client: httpx.AsyncClient, prefix: str, gender: str) -> dict:
-    email = rnd_email(prefix)
-    r = await client.post(f"{BASE}/auth/request-otp", json={"email": email})
+async def signup(client: httpx.AsyncClient, seq: int, gender: str) -> dict:
+    phone = rnd_phone(seq)
+    r = await client.post(f"{BASE}/auth/request-otp", json={"phone": phone})
     code = r.json()["dev_code"]
-    r2 = await client.post(f"{BASE}/auth/verify-otp", json={"email": email, "code": code})
+    r2 = await client.post(f"{BASE}/auth/verify-otp", json={"phone": phone, "code": code})
     tok = r2.json()["signup_token"]
     r3 = await client.post(f"{BASE}/auth/signup", json={"signup_token": tok, "password": "strongpass123"})
     data = r3.json()
@@ -173,12 +173,12 @@ async def scenario() -> None:
 
     async with httpx.AsyncClient(timeout=20) as c:
         print("\n— phase A: auth & onboarding")
-        r = await c.post(f"{BASE}/auth/request-otp", json={"email": "outsider@gmail.com"})
-        check("campus-only email blocked", r.status_code == 403, f"got {r.status_code}")
+        r = await c.post(f"{BASE}/auth/request-otp", json={"phone": "12345"})
+        check("invalid phone blocked", r.status_code == 422, f"got {r.status_code}")
 
-        requester = await signup(c, "riya.mehta", "female")
-        helper = await signup(c, "aarav.sharma", "male")
-        helper2 = await signup(c, "rohit.verma", "male")
+        requester = await signup(c, 1, "female")
+        helper = await signup(c, 2, "male")
+        helper2 = await signup(c, 3, "male")
         check("signup returns token+user", bool(requester.get("token")) and bool(requester["user"]["handle"]))
         check("signup bonus granted (+5)", requester["user"]["help_points"] >= 5,
               str(requester["user"]["help_points"]))
@@ -229,7 +229,7 @@ async def scenario() -> None:
         card = ev_h["request"]
         check("pre-acceptance card is anonymous (rule 3)",
               card["requester"]["handle"] == requester["user"]["handle"]
-              and "email" not in card["requester"] and "name" not in card["requester"])
+              and "phone" not in card["requester"] and "email" not in card["requester"] and "name" not in card["requester"])
 
         feed = (await c.get(f"{BASE}/requests/feed", headers=hp_tok)).json()
         check("helper REST feed contains the request", any(x["id"] == created["id"] for x in feed))
@@ -260,7 +260,7 @@ async def scenario() -> None:
         check("male WS receives no female-only broadcast", not got_fo)
 
         # a female helper joining late must still get it via late-match
-        fhelper = await signup(c, "simran.kaur", "female")
+        fhelper = await signup(c, 4, "female")
         await heartbeat(c, fhelper["token"], req_lat - 0.0008, req_lng - 0.0008)
         r = await c.post(f"{BASE}/requests/late-match", headers={"Authorization": f"Bearer {fhelper['token']}"})
         check("late-match adds female helper to female-only feed", r.json()["added"] >= 1, str(r.json()))
@@ -351,7 +351,7 @@ async def scenario() -> None:
         check("helper balance = signup 5 + 15", me["help_points"] == 20, str(me["help_points"]))
 
         lb = (await c.get(f"{BASE}/users/leaderboard", headers=rq_tok)).json()
-        check("leaderboard is anonymous", bool(lb) and "email" not in lb[0] and bool(lb[0]["handle"]))
+        check("leaderboard is anonymous", bool(lb) and "phone" not in lb[0] and "email" not in lb[0] and bool(lb[0]["handle"]))
 
         ledger = (await c.get(f"{BASE}/users/me/ledger", headers=hp_tok)).json()
         check("ledger records completion (+15)", any(x["points"] == 15 for x in ledger))

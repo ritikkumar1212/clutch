@@ -63,11 +63,11 @@ Full rule→code mapping: [`docs/05-privacy-enforcement.md`](docs/05-privacy-enf
 ## Phase 1 — architecture, folder structure, database & Redis schema
 
 - [`docs/01-architecture.md`](docs/01-architecture.md) — system diagram, folder map, request state machine, event flow.
-- [`docs/02-database-schema.sql`](docs/02-database-schema.sql) — canonical PostgreSQL schema (enums `gender_enum`, `request_status`, `urgency_enum`, `ledger_reason`; tables `users`, `email_otps`, `push_subscriptions`, `help_requests`, `help_points_ledger`, `chat_messages`). **Note: there is intentionally no table for live user coordinates.**
+- [`docs/02-database-schema.sql`](docs/02-database-schema.sql) — canonical PostgreSQL schema (enums `gender_enum`, `request_status`, `urgency_enum`, `ledger_reason`; tables `users`, `phone_otps`, `push_subscriptions`, `help_requests`, `help_points_ledger`, `chat_messages`). **Note: there is intentionally no table for live user coordinates.**
 - [`docs/03-redis-design.md`](docs/03-redis-design.md) — every key, TTL and the matching pipeline:
   - `geo:helpers` (GEO) + `helper:expiry` (ZSET lease) + `user:meta:{uid}` (gender cache)
   - `feed:{uid}` (targeted feed ZSET) + `subs:{id}` (reverse index for lock/expire fan-out)
-  - `viewers:{id}` (live viewer SET) · `room:request:{id}` / `room:chat:{id}` (pub/sub) · `ws:conn:{uid}` (push-decision flag) · `rate:otp:{email}`
+  - `viewers:{id}` (live viewer SET) · `room:request:{id}` / `room:chat:{id}` (pub/sub) · `ws:conn:{uid}` (push-decision flag) · `rate:otp:{phone}`
 
 ## Phase 2 — backend API & WebSocket engine
 
@@ -123,11 +123,11 @@ cp .env.local.example .env.local                     # point at the backend (LAN
 npm run dev                                          # http://localhost:3000
 ```
 
-> Demo accounts after seeding: `aarav.sharma@pu.ac.in`, `isha.kaur@uiet.ac.in`, … (password `campus123`), all profile-complete, all with live presence leases near the UIET centre for ~30 min — so the radar estimator shows realistic counts immediately.
+> Demo accounts after seeding: `+919876500001`, `+919876500002`, … (password `campus123`), all profile-complete, all with live presence leases near the UIET centre for ~30 min — so the radar estimator shows realistic counts immediately.
 
 ## Testing the full loop in 5 minutes
 
-1. Open **two browsers** (or a browser + an incognito window). Sign up both with campus emails — dev mode shows the OTP code right on the signup screen (`OTP_DEV_ECHO=true`).
+1. Open **two browsers** (or a browser + an incognito window). Sign up both with phone numbers — dev mode shows the OTP code right on the signup screen (`OTP_DEV_ECHO=true`).
 2. On both, complete onboarding (pick gender; helper adds a UPI ID).
 3. **Helper**: allow location permission, stay on the Feed.
 4. **Requester**: Radar → tap the map near your helper → pick a radius → watch the *"N matching helpers online in this zone"* readout → pick Medicine, Urgent, ₹20 tip → **Broadcast request**.

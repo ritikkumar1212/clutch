@@ -35,8 +35,8 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 -- verified M/F badge (rule 3 & 5 of the privacy model).
 CREATE TABLE IF NOT EXISTS users (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email           TEXT NOT NULL UNIQUE,              -- must end with an allowed campus domain
-  email_verified  BOOLEAN NOT NULL DEFAULT FALSE,    -- OTP verified before signup completes
+  phone           TEXT NOT NULL UNIQUE,              -- E.164 phone number, e.g. +919876543210
+  phone_verified  BOOLEAN NOT NULL DEFAULT FALSE,    -- OTP verified before signup completes
   password_hash   TEXT NOT NULL,                     -- PBKDF2-SHA256, salted
   handle          TEXT NOT NULL UNIQUE,              -- anonymous handle, e.g. swift_panda
   gender          gender_enum NOT NULL DEFAULT 'other',
@@ -50,16 +50,16 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE INDEX IF NOT EXISTS idx_users_points ON users (help_points DESC);
 
--- OTP codes issued to campus emails during signup (10-min TTL, single use)
-CREATE TABLE IF NOT EXISTS email_otps (
+-- OTP codes issued to phone numbers during signup (10-min TTL, single use)
+CREATE TABLE IF NOT EXISTS phone_otps (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email      TEXT NOT NULL,
+  phone      TEXT NOT NULL,
   code_hash  TEXT NOT NULL,        -- sha256 of the 6-digit code
   consumed   BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   expires_at TIMESTAMPTZ NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_otps_email ON email_otps (email, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_otps_phone ON phone_otps (phone, created_at DESC);
 
 -- Web-Push subscriptions (one row per browser/endpoint)
 CREATE TABLE IF NOT EXISTS push_subscriptions (

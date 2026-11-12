@@ -55,7 +55,7 @@ messages.
 | Key | Type | Purpose | TTL |
 |---|---|---|---|
 | `ws:conn:{userId}` | STRING | Push-decision flag: web-push fires only when this key is **missing** (user has no live socket). Refreshed every ≤25 s by WS keepalive ping so crashed sockets self-heal | 90 s |
-| `rate:otp:{email}` | counter | Max 5 OTP emails / 10 min | 10 min |
+| `rate:otp:{phone}` | counter | Max 5 OTP SMS / 10 min | 10 min |
 
 ## 6. Request TTL semantics
 

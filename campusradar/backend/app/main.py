@@ -6,8 +6,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from app.config import settings
+from app.database import engine
 from app.redis_client import rds
 from app.services.janitor import start_janitor
 from app.ws.router import router as ws_router
@@ -19,9 +21,40 @@ logging.basicConfig(
 log = logging.getLogger("campusradar")
 
 
+async def _ensure_phone_schema() -> None:
+    """Idempotent migration for Postgres volumes initialized before phone auth."""
+    stmts = [
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN NOT NULL DEFAULT FALSE",
+        """DO $$ BEGIN
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='email') THEN
+            ALTER TABLE users ALTER COLUMN email DROP NOT NULL;
+            UPDATE users SET phone = email, phone_verified = COALESCE(email_verified, TRUE) WHERE phone IS NULL;
+          END IF;
+        END $$""",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_unique ON users (phone) WHERE phone IS NOT NULL",
+        """CREATE TABLE IF NOT EXISTS phone_otps (
+          id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          phone      TEXT NOT NULL,
+          code_hash  TEXT NOT NULL,
+          consumed   BOOLEAN NOT NULL DEFAULT FALSE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          expires_at TIMESTAMPTZ NOT NULL
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_otps_phone ON phone_otps (phone, created_at DESC)",
+    ]
+    async with engine.begin() as conn:
+        for stmt in stmts:
+            await conn.execute(text(stmt))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     janitor = None
+    try:
+        await _ensure_phone_schema()
+    except Exception as exc:  # noqa: BLE001 — surface loudly, keep booting
+        log.error("schema check failed: %s", exc)
     try:
         await rds.ping()
         log.info("redis connected (%s)", settings.REDIS_URL)

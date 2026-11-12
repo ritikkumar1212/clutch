@@ -3,20 +3,20 @@
 Base URL: `http://<host>:8000/api/v1` — bearer JWT on every authed route.
 Interactive docs: `http://<host>:8000/docs` (OpenAPI).
 
-## Auth (rule 7 — campus-only)
+## Auth (phone OTP)
 
 | Method | Path | Body | Notes |
 |---|---|---|---|
-| POST | `/auth/request-otp` | `{email}` | 403 unless domain ∈ `ALLOWED_EMAIL_DOMAINS` (sub-domains allowed). Rate-limited 5 / 10 min. Returns `dev_code` only when `OTP_DEV_ECHO=true` |
-| POST | `/auth/verify-otp` | `{email, code}` | 10-min TTL, single-use → returns short-lived `signup_token` |
+| POST | `/auth/request-otp` | `{phone}` | Normalizes 10-digit Indian or E.164 numbers. Rate-limited 5 / 10 min. Returns `dev_code` only when `OTP_DEV_ECHO=true` |
+| POST | `/auth/verify-otp` | `{phone, code}` | 10-min TTL, single-use → returns short-lived `signup_token` |
 | POST | `/auth/signup` | `{signup_token, password, handle?}` | handle auto-generated `adjective_animal` if omitted; +5 signup bonus |
-| POST | `/auth/login` | `{email, password}` | campus-domain check runs here too |
+| POST | `/auth/login` | `{phone, password}` | returns bearer JWT + user profile |
 
 ## Users / onboarding
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/users/me` | full own profile (email visible only to self) |
+| GET | `/users/me` | full own profile (phone visible only to self) |
 | POST | `/users/onboarding` | `{gender: male\|female\|other, upi_vpa?}` → sets the verified badge; **required before any matching endpoint** (403 gate) |
 | GET | `/users/leaderboard` | top 20, anonymous rows only: `{rank, handle, gender, help_points}` |
 | GET | `/users/me/ledger` | Help-Points history |

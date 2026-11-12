@@ -61,7 +61,7 @@ export default function ProfilePage() {
             <GenderBadge gender={me.gender} verified={me.gender_verified} />
           </div>
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-xs text-muted">{me.email}</span>
+            <span className="text-xs text-muted">{me.phone}</span>
             <PointsPill points={me.help_points} />
           </div>
           <p className="mt-3 rounded-xl bg-white/5 px-3 py-2 text-[11px] leading-relaxed text-muted">

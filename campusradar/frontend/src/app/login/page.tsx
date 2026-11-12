@@ -7,7 +7,7 @@ import { api, setSession } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -19,7 +19,7 @@ export default function LoginPage() {
     try {
       const data = await api<{ token: string; user: { profile_complete: boolean } }>("/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ phone, password }),
       });
       setSession(data.token, data.user as never);
       router.replace(data.user.profile_complete ? "/radar" : "/onboarding");
@@ -40,17 +40,17 @@ export default function LoginPage() {
         </div>
         <h1 className="text-2xl font-black tracking-tight">Welcome back</h1>
         <p className="text-center text-sm text-muted">
-          UIET students only — verified campus emails (@pu.ac.in / @uiet.ac.in)
+          Sign in with your verified phone number (UIET Chandigarh)
         </p>
       </div>
 
       <form onSubmit={submit} className="space-y-4">
         <div>
-          <label htmlFor="email" className="mb-1 block text-xs font-semibold text-muted">Campus email</label>
+          <label htmlFor="phone" className="mb-1 block text-xs font-semibold text-muted">Phone number</label>
           <input
-            id="email" type="email" required value={email} autoComplete="email"
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@uiet.ac.in"
+            id="phone" type="tel" inputMode="tel" required value={phone} autoComplete="tel"
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+91 98765 43210"
             className="w-full rounded-xl border border-line bg-panel px-4 py-3 text-sm placeholder:text-muted/60 focus:border-neon focus:outline-none"
           />
         </div>

@@ -4,7 +4,7 @@ export type RequestStatus = "open" | "accepted" | "completed" | "expired" | "can
 
 export interface User {
   id: string;
-  email: string;
+  phone: string;
   handle: string;
   gender: Gender;
   gender_verified: boolean;

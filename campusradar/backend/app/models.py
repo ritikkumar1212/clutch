@@ -74,8 +74,8 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=new_uuid)
-    email: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
-    email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    phone: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    phone_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     handle: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
     gender: Mapped[Gender] = mapped_column(Enum(Gender, name="gender_enum", native_enum=True),
@@ -90,11 +90,11 @@ class User(Base):
     ledger: Mapped[list["LedgerEntry"]] = relationship(back_populates="user", viewonly=True)
 
 
-class EmailOtp(Base):
-    __tablename__ = "email_otps"
+class PhoneOtp(Base):
+    __tablename__ = "phone_otps"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=new_uuid)
-    email: Mapped[str] = mapped_column(Text, nullable=False)
+    phone: Mapped[str] = mapped_column(Text, nullable=False)
     code_hash: Mapped[str] = mapped_column(Text, nullable=False)
     consumed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

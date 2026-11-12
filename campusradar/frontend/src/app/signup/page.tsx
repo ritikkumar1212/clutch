@@ -1,6 +1,6 @@
 "use client";
 
-/* 3-step signup: campus email → OTP code → password. Anonymous handle is
+/* 3-step signup: phone number → OTP code → password. Anonymous handle is
    auto-generated; users never use real names on CampusRadar. */
 import { useState } from "react";
 import Link from "next/link";
@@ -10,7 +10,7 @@ import { api, setSession } from "@/lib/api";
 export default function SignupPage() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [devCode, setDevCode] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export default function SignupPage() {
     try {
       const res = await api<{ dev_code: string | null }>("/auth/request-otp", {
         method: "POST",
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ phone }),
       });
       setDevCode(res.dev_code);
       setStep(2);
@@ -42,7 +42,7 @@ export default function SignupPage() {
     try {
       const res = await api<{ signup_token: string }>("/auth/verify-otp", {
         method: "POST",
-        body: JSON.stringify({ email, code }),
+        body: JSON.stringify({ phone, code }),
       });
       localStorage.setItem("cr_signup_token", res.signup_token);
       setStep(3);
@@ -82,15 +82,15 @@ export default function SignupPage() {
           ))}
         </div>
         <h1 className="text-2xl font-black tracking-tight">
-          {step === 1 && "Verify it's really you"}
+          {step === 1 && "Verify your phone number"}
           {step === 2 && "Enter the 6-digit code"}
           {step === 3 && "Set a password"}
         </h1>
         <p className="mt-1 text-sm text-muted">
-          {step === 1 && "Only verified campus emails can join the network."}
-          {step === 2 && devCode
-            ? `Dev mode: code shown here (production sends email) — ${devCode}`
-            : "We sent a code to your inbox."}
+          {step === 1 && "Enter your 10-digit mobile number to join the campus network."}
+          {step === 2 && (devCode
+            ? `Dev mode: code shown here (production sends SMS) — ${devCode}`
+            : "We sent an SMS code to your phone.")}
           {step === 3 && "Last step — then pick your anonymous handle."}
         </p>
       </div>
@@ -98,9 +98,9 @@ export default function SignupPage() {
       {step === 1 && (
         <form onSubmit={requestOtp} className="space-y-4">
           <input
-            type="email" required value={email} autoComplete="email"
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@uiet.ac.in"
+            type="tel" inputMode="tel" required value={phone} autoComplete="tel"
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+91 98765 43210"
             className="w-full rounded-xl border border-line bg-panel px-4 py-3.5 text-sm placeholder:text-muted/60 focus:border-neon focus:outline-none"
           />
           {error && <p className="rounded-xl bg-danger/10 px-3 py-2 text-xs text-danger">{error}</p>}

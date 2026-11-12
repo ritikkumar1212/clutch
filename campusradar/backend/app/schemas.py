@@ -2,17 +2,37 @@
 from __future__ import annotations
 
 from datetime import datetime
+import re
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 VALID_CATEGORIES = {"ride", "medicine", "printout", "charger", "study", "errand"}
 VALID_RADII = {200, 500, 1000, 2000}
 
 
+def normalize_phone(raw: str) -> str:
+    """Normalize a 10-digit Indian mobile number or E.164 string to +<digits>."""
+    cleaned = re.sub(r"[\s\-().]+", "", raw.strip())
+    if re.fullmatch(r"\d{10}", cleaned):
+        return f"+91{cleaned}"
+    if re.fullmatch(r"0\d{10}", cleaned):
+        return f"+91{cleaned[1:]}"
+    if re.fullmatch(r"91\d{10}", cleaned):
+        return f"+{cleaned}"
+    if re.fullmatch(r"\+[1-9]\d{7,14}", cleaned):
+        return cleaned
+    raise ValueError("Enter a valid 10-digit mobile number or E.164 format (e.g. +919876543210)")
+
+
 # ------------------------------------------------------------------- auth ----
 class OtpRequestIn(BaseModel):
-    email: EmailStr
+    phone: str
+
+    @field_validator("phone")
+    @classmethod
+    def phone_valid(cls, v: str) -> str:
+        return normalize_phone(v)
 
 
 class OtpRequestOut(BaseModel):
@@ -22,8 +42,13 @@ class OtpRequestOut(BaseModel):
 
 
 class OtpVerifyIn(BaseModel):
-    email: EmailStr
+    phone: str
     code: str = Field(min_length=6, max_length=6)
+
+    @field_validator("phone")
+    @classmethod
+    def phone_valid(cls, v: str) -> str:
+        return normalize_phone(v)
 
 
 class OtpVerifyOut(BaseModel):
@@ -37,8 +62,13 @@ class SignupIn(BaseModel):
 
 
 class LoginIn(BaseModel):
-    email: EmailStr
+    phone: str
     password: str
+
+    @field_validator("phone")
+    @classmethod
+    def phone_valid(cls, v: str) -> str:
+        return normalize_phone(v)
 
 
 class AuthOut(BaseModel):
@@ -54,7 +84,7 @@ class OnboardingIn(BaseModel):
 
 class UserOut(BaseModel):
     id: str
-    email: str
+    phone: str
     handle: str
     gender: str
     gender_verified: bool
