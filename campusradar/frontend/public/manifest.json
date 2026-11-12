@@ -1,0 +1,24 @@
+{
+  "name": "CampusRadar — UIET Help Network",
+  "short_name": "CampusRadar",
+  "description": "Hyper-local peer-to-peer campus help network. Post urgent requests on a map, nearby students help, earn Help Points.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020",
+  "lang": "en-IN",
+  "categories": ["social", "utilities", "education"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Campus Radar", "url": "/radar" },
+    { "name": "Incoming requests", "url": "/feed" },
+    { "name": "Help Points", "url": "/rewards" }
+  ]
+}

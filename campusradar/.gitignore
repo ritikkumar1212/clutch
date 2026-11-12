@@ -1,0 +1,14 @@
+# CampusRadar monorepo
+node_modules/
+.next/
+out/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+.env.local
+*.log
+.DS_Store
+.pytest_cache/
+*.egg-info/

@@ -1,0 +1,77 @@
+# ============================================================================
+# CampusRadar — full local stack (Postgres + Redis + FastAPI + Next.js PWA)
+#
+#   docker compose up --build
+#     → PWA      http://localhost:3000
+#     → API docs http://localhost:8000/docs
+#
+# Phone on the same Wi-Fi: rebuild web with your LAN IP so the PWA can reach
+# the API, e.g.
+#   NEXT_PUBLIC_API_BASE=http://192.168.1.24:8000/api/v1 \
+#   NEXT_PUBLIC_WS_BASE=ws://192.168.1.24:8000/ws \
+#     docker compose up --build web
+# ============================================================================
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: campus
+      POSTGRES_PASSWORD: campus
+      POSTGRES_DB: campus
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Phase 1 schema applied automatically on first boot:
+      - ./docs/02-database-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U campus -d campus"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    # persistence optional — geo leases & feeds are ephemeral by design
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://campus:campus@db:5432/campus
+      REDIS_URL: redis://redis:6379/0
+      ALLOWED_EMAIL_DOMAINS: pu.ac.in,uiet.ac.in
+      OTP_DEV_ECHO: "true"          # dev only — return the OTP in the API response
+      JWT_SECRET: change-me-in-production
+      # Generate real keys:  python -m app.scripts.gen_vapid  (see README)
+      VAPID_PUBLIC_KEY:
+      VAPID_PRIVATE_KEY:
+      VAPID_SUBJECT: mailto:dev@campusradar.local
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-http://localhost:8000/api/v1}
+        NEXT_PUBLIC_WS_BASE: ${NEXT_PUBLIC_WS_BASE:-ws://localhost:8000/ws}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
