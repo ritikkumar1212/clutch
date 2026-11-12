@@ -31,8 +31,8 @@ Built **privacy-first**: no individual user ever appears on any map.
 
 | Screen | What it does |
 |---|---|
-| **Campus Radar** (`/radar`) | Leaflet map (LocationIQ tiles over OSM data). Tap to drop the **target pin**, drag to fine-tune, switch radius chips **200 m / 500 m / 1 km / 2 km** — a translucent circle follows. A live aggregate readout shows *"N matching helpers online in this zone"* (never who or where). Broadcast a help request by describing what you need, and — for female users — use the **"Female helpers only"** toggle. Cash rewards or item/portion requests are negotiated privately after a helper accepts. |
-| **Feed** (`/feed`) | Only requests the server *targeted to you* (geo + gender filter). Accept with one tap; taken requests vanish live via WS. |
+| **Campus Radar** (`/radar`) | Leaflet map (LocationIQ tiles over OSM data). Tap to drop the **target pin** where help is needed, drag to fine-tune, then describe what you need. The request is broadcast to active university users, with an optional **"Female helpers only"** toggle. Cash rewards or item/portion requests are negotiated privately after a helper accepts. |
+| **Feed** (`/feed`) | Requests broadcast to you while active (subject to the gender filter). Accept with one tap; taken requests vanish live via WS. |
 | **Tasks** (`/requests`) | Your posted requests with the **live viewer counter** ("X users are currently viewing your request"), the Handshake PIN reveal, and everything you're helping with. |
 | **Chat** (`/chat/[id]`) | Ephemeral two-person room: quick-reply chips ("On my way", "Reached the gate", "5 mins away"…), the requester's PIN reveal, the helper's 4-box PIN entry, completion → points → one-tap **Pay via UPI**. Auto-locks 30 min after completion. |
 | **Help Points** (`/rewards`) | Balance, ledger history, anonymous campus leaderboard. |
@@ -42,8 +42,8 @@ Built **privacy-first**: no individual user ever appears on any map.
 
 | Rule | How it's enforced |
 |---|---|
-| **1. Zero individual user pins** | GPS exists only in Redis (`GEOADD geo:helpers`, 90 s lease). No endpoint or WS event returns another person's coordinates — matching results are reduced to counts and anonymous cards. The map renders only *your own* target pin. |
-| **2. Aggregate reach + live viewers** | `POST /requests/estimate` returns a number, not users. `viewers:{id}` SET drives the live "X users are currently viewing" counter (distinct users, two tabs count once). |
+| **1. Zero individual user pins** | GPS exists only in Redis (`GEOADD geo:helpers`, 90 s lease). No endpoint or WS event returns another person's coordinates. The map renders only *your own* target pin. |
+| **2. University-wide broadcast + live viewers** | Active university users receive the request (with server-side gender filtering). `viewers:{id}` SET drives the live "X users are currently viewing" counter (distinct users, two tabs count once). |
 | **3. Pre-acceptance anonymity** | Cards carry anonymous `handle` + verified gender badge + task + target pin. Real names/photos are never collected; UPI VPA is exposed only *after* completion, only to the payer. |
 | **4. Asymmetric gender filter** | `female_only` requests are filtered **on the server during broadcast** — male users never receive the WS event, push, or feed item (there is no client-side hiding). Re-checked again at accept (403) and at WS view. |
 | **5. Ephemeral chat + handshake PIN** | Accept is an atomic row lock (one winner, losers 409). PIN shown only to the requester; helper enters it to complete. Chat locks 30 min after completion, purges 24 h later. |
@@ -137,7 +137,7 @@ npm run dev                                          # http://localhost:3000
 1. Open **two browsers** (or a browser + an incognito window). Sign up both with phone numbers — dev mode shows the OTP code right on the signup screen (`OTP_DEV_ECHO=true`).
 2. On both, complete onboarding (pick gender; helper adds a UPI ID).
 3. **Helper**: allow location permission, stay on the Feed.
-4. **Requester**: Radar → tap the map near your helper → pick a radius → watch the *"N matching helpers online in this zone"* readout → describe the need → **Broadcast request**.
+4. **Requester**: Radar → tap the map where help is needed → describe the need → **Broadcast request**.
 5. Helper: the card drops into the feed instantly (WS `new_request`) + a web-push if the tab is closed. **Accept & help** → ephemeral chat opens.
 6. Requester: Tasks screen shows *"1 user is currently viewing your request"* turning into the locked state; reveal the **Handshake PIN**.
 7. Chat both ways (quick-reply chips), then helper enters the PIN → **+15 Help Points** (+10 base +5 urgent), ledger row, leaderboard updates.

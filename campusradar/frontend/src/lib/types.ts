@@ -24,7 +24,6 @@ export interface RequestCard {
   landmark: string | null;
   lat: number;
   lng: number;
-  radius_m: number;
   gender_filter: "everyone" | "female_only";
   status: RequestStatus;
   expires_at: string;

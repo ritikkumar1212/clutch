@@ -8,7 +8,7 @@ to counts or request cards before they leave the server.
 
 | Key | Type | Purpose | TTL |
 |---|---|---|---|
-| `geo:helpers` | GEO (ZSET, lon/lat/member=userId) | `GEOADD` on every heartbeat, `GEOSEARCH` for radius matching | — |
+| `geo:helpers` | GEO (ZSET, lon/lat/member=userId) | `GEOADD` on every heartbeat; coordinates are retained for the request pin/directions experience | — |
 | `helper:expiry` | ZSET (score = expiry epoch-ms) | Per-user presence lease; heartbeat refreshes to `now + 90s`. Janitor removes stale members from both sets | — |
 | `user:meta:{userId}` | HASH `{gender, handle, help_points}` | Hot cache so gender filtering never needs a DB round-trip during broadcast | — |
 

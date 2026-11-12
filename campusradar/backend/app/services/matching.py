@@ -1,4 +1,4 @@
-"""Request matching & targeted broadcast (rule 2 + rule 4).
+"""Request matching and university-wide broadcast (rule 4).
 
 The server reduces geo-matching to COUNTS and REQUEST CARDS. Individual
 helper positions are never exposed.
@@ -31,7 +31,6 @@ def _request_card(req: HelpRequest, requester: User) -> dict:
         "landmark": req.landmark,
         "lat": req.lat,                      # TARGET pin (by design, rule 3)
         "lng": req.lng,
-        "radius_m": req.radius_m,
         "gender_filter": req.gender_filter,
         "status": enum_val(req.status) if hasattr(req.status, "value") else req.status,
         "expires_at": req.expires_at.isoformat(),
@@ -44,17 +43,9 @@ def _request_card(req: HelpRequest, requester: User) -> dict:
     }
 
 
-async def estimate_reach(db: AsyncSession, lat: float, lng: float,
-                         radius_m: int, gender_filter: str, requester_id: str) -> int:
-    """Aggregate count for the radar screen: 'N matching helpers online in this zone'."""
-    candidates = await geo.search_within(lng, lat, radius_m)
-    filtered = await geo.filter_candidates(db, candidates, requester_id, gender_filter)
-    return len(filtered)
-
-
 async def broadcast_new_request(db: AsyncSession, req: HelpRequest, requester: User) -> int:
-    """Insert into matching feeds, emit WS events, push the offline."""
-    candidates = await geo.search_within(req.lng, req.lat, req.radius_m)
+    """Broadcast to every active university user, subject to gender preference."""
+    candidates = await geo.online_ids()
     targets = await geo.filter_candidates(db, candidates, req.requester_id, req.gender_filter)
 
     card = _request_card(req, requester)
@@ -93,7 +84,7 @@ async def remove_from_feeds(request_id: str, event_type: str = "feed_removed") -
 
 
 async def add_to_feed_single(db: AsyncSession, req: HelpRequest, requester: User, helper_id: str) -> None:
-    """Late-matching catch-up: a helper whose heartbeat arrived after creation."""
+    """Catch-up: a helper whose heartbeat arrived after creation."""
     await rds.zadd(f"feed:{helper_id}", {req.id: req.created_at.timestamp() if req.created_at else 0})
     await rds.expire(f"feed:{helper_id}", settings.FEED_TTL_SECONDS)
     await rds.sadd(f"subs:{req.id}", helper_id)

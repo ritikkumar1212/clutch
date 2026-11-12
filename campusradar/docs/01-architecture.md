@@ -34,9 +34,10 @@ person's coordinates.** The only coordinates in the system are:
 2. A requester's chosen **target pin** (where help is needed) → stored on the
    request row and shown to matched helpers by design.
 
-Matching output is always reduced to *counts* (`/requests/estimate`) or
-*request cards* (anonymous handle + badge + target pin) before it leaves the
-server. There is no endpoint, event or payload that returns user positions.
+Matching output is always reduced to *request cards* (anonymous handle + badge
++ target pin) before it leaves the server. There is no endpoint, event or
+payload that returns user positions; requests are broadcast to active
+university users rather than filtered by distance.
 
 ## Folder structure
 
@@ -78,7 +79,7 @@ campusradar/
 ## Request lifecycle (state machine)
 
 ```
-            broadcast: GEOSEARCH radius → filter rule 4 → WS + push to matches
+            broadcast: active presence users → filter rule 4 → WS + push to matches
                        ┌──────────────┐
    create (radar) ────▶│    open      │── 20 min without accept ──▶ expired
                        └──┬───────┬───┘        (janitor, rule 7)
