@@ -88,7 +88,7 @@ campusradar/
                      accepted ── chat room opens, PIN shown to requester
                           │  helper enters 4-digit PIN at the meet-up
                           ▼
-                     completed ── +10 pts + urgency bonus, ledger row,
+                     completed ── +10 pts, ledger row,
                           │       UPI tip deep link to requester
                           │       30 min later: chat auto-locks (rule 5)
                           └──────▶ (24 h later: messages purged)

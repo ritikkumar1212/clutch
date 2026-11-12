@@ -22,20 +22,17 @@ log = logging.getLogger("campusradar.matching")
 def _request_card(req: HelpRequest, requester: User) -> dict:
     """The ONLY projection of a request that leaves the server pre-acceptance.
 
-    RULE 3: anonymous handle + gender badge + task info + target pin + tip.
+    RULE 3: anonymous handle + gender badge + task info + target pin.
     No email, no name, no photo, no requester live-location.
     """
     return {
         "id": req.id,
-        "category": req.category,
         "description": req.description,
         "landmark": req.landmark,
         "lat": req.lat,                      # TARGET pin (by design, rule 3)
         "lng": req.lng,
         "radius_m": req.radius_m,
-        "urgency": enum_val(req.urgency) if hasattr(req.urgency, "value") else req.urgency,
         "gender_filter": req.gender_filter,
-        "tip_amount": float(req.tip_amount or 0),
         "status": enum_val(req.status) if hasattr(req.status, "value") else req.status,
         "expires_at": req.expires_at.isoformat(),
         "created_at": req.created_at.isoformat() if req.created_at else None,
@@ -75,12 +72,11 @@ async def broadcast_new_request(db: AsyncSession, req: HelpRequest, requester: U
 
         from app.services.geo import is_ws_connected
         if not await is_ws_connected(uid):
-            urgency_label = {"normal": "Help needed", "urgent": "URGENT:", "emergency": "EMERGENCY:"}[card["urgency"]]
             await push.send_to_user(
                 db, uid,
-                title=f"{urgency_label} {card['category']} request",
-                body=f"{card['requester']['handle']} needs help{(' · ' + card['landmark']) if card['landmark'] else ''}"
-                     + (f" · ₹{card['tip_amount']} tip" if card["tip_amount"] else ""),
+                title="Help request",
+                body=f"{card['requester']['handle']} needs help"
+                     f"{(' · ' + card['landmark']) if card['landmark'] else ''}",
                 url=f"/feed",
             )
     return len(targets)

@@ -82,7 +82,7 @@ async def after_accept(db: AsyncSession, req: HelpRequest, helper: User) -> None
     if requester:
         await geo.notify_user(requester.id, locked_event)
         await push.send_to_user(db, requester.id, "Request accepted!",
-                                f"@{helper.handle} accepted your {req.category} request",
+                                f"@{helper.handle} accepted your help request",
                                 url=f"/chat/{req.id}")
 
 
@@ -107,7 +107,7 @@ async def verify_pin(db: AsyncSession, req: HelpRequest, helper: User, pin: str)
     await db.commit()
     await db.refresh(req)
 
-    points = await award_completion(db, helper, req.id, req.urgency)
+    points = await award_completion(db, helper, req.id)
     requester = await db.get(User, req.requester_id)
 
     await matching.remove_from_feeds(req.id, event_type="feed_removed")
@@ -131,7 +131,7 @@ async def verify_pin(db: AsyncSession, req: HelpRequest, helper: User, pin: str)
         await geo.notify_user(requester.id, completed_event)
         await push.send_to_user(db, requester.id, "Task completed ✓",
                                 f"+{points} Help Points for @{helper.handle}. "
-                                + ("Tap to pay your tip via UPI." if float(req.tip_amount or 0) > 0 else ""),
+                                + ("Tap to pay the agreed cash reward via UPI." if float(req.tip_amount or 0) > 0 else ""),
                                 url=f"/chat/{req.id}")
 
     return {
@@ -192,6 +192,6 @@ async def notify_expired_requester(db: AsyncSession, req_id: str) -> None:
         return
     await geo.notify_user(req.requester_id, {"type": "request_expired", "request_id": req_id})
     await push.send_to_user(db, req.requester_id, "Request expired",
-                            f"Nobody accepted your {req.category} request within "
+                            f"Nobody accepted your help request within "
                             f"{settings.REQUEST_TTL_MINUTES} minutes. Try widening the radius.",
                             url="/requests")

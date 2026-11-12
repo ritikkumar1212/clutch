@@ -9,7 +9,7 @@ import { useParams } from "next/navigation";
 import { api, getToken, getUser } from "@/lib/api";
 import { ws } from "@/lib/ws";
 import { fmtClock } from "@/lib/geo";
-import { QUICK_REPLIES, categoryOf } from "@/lib/categories";
+import { QUICK_REPLIES } from "@/lib/categories";
 import { GenderBadge } from "@/components/Badges";
 import PinInput from "@/components/PinInput";
 import { buildUpiLink } from "@/lib/upi";
@@ -28,13 +28,15 @@ export default function ChatPage() {
 
   const [room, setRoom] = useState<ChatRoom | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [catId, setCatId] = useState<string>("errand");
   const [draft, setDraft] = useState("");
   const [pin, setPin] = useState("");
   const [verifyBusy, setVerifyBusy] = useState(false);
   const [verifyErr, setVerifyErr] = useState("");
   const [result, setResult] = useState<VerifyResult | null>(null);
   const [pinVisible, setPinVisible] = useState(false);
+  const [rewardAmount, setRewardAmount] = useState("");
+  const [rewardBusy, setRewardBusy] = useState(false);
+  const [rewardError, setRewardError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const completedRef = useRef(false);
 
@@ -47,13 +49,6 @@ export default function ChatPage() {
     } catch (err) {
       console.warn(err);
     }
-  }, [requestId]);
-
-  /* category for the header chip (best-effort — chat still works without it) */
-  useEffect(() => {
-    api<{ category: string }>(`/requests/${requestId}`)
-      .then((r) => setCatId(r.category))
-      .catch(() => {});
   }, [requestId]);
 
   useEffect(() => {
@@ -98,6 +93,29 @@ export default function ChatPage() {
     }
   }
 
+  async function saveReward() {
+      const amount = Number(rewardAmount);
+      if (!Number.isFinite(amount) || amount < 0) {
+        setRewardError("Enter a valid amount, or 0 for no cash reward");
+        return;
+      }
+      setRewardBusy(true);
+      setRewardError("");
+      try {
+        const updated = await api<ChatRoom>(`/chat/${requestId}/reward`, {
+          method: "POST",
+          body: JSON.stringify({ amount }),
+        });
+        setRoom(updated);
+        setMessages(updated.messages);
+        setRewardAmount("");
+      } catch (err) {
+        setRewardError(err instanceof Error ? err.message : "Could not save reward");
+      } finally {
+        setRewardBusy(false);
+    }
+  }
+
   async function revealPin() {
     setPinVisible(true);
     try {
@@ -135,8 +153,6 @@ export default function ChatPage() {
 
   const isHelper = room.role === "helper";
   const canVerify = isHelper && room.status === "accepted" && !room.archived;
-  const cat = categoryOf(catId);
-
   return (
     <main className="flex min-h-screen flex-col px-4 pt-2">
       {/* header */}
@@ -162,7 +178,6 @@ export default function ChatPage() {
                   : room.status}
           </p>
         </div>
-        <span className={`grid h-8 w-8 place-items-center rounded-lg bg-white/5 ${cat.color}`}>{cat.icon}</span>
       </header>
 
       {/* messages */}
@@ -252,6 +267,37 @@ export default function ChatPage() {
         </p>
       )}
 
+      {!room.archived && room.status === "accepted" && (
+        <div className="mb-2 rounded-2xl border border-line bg-panel p-3">
+          <p className="text-xs font-semibold text-muted">
+            Negotiate here: money is optional; item or portion requests can be sent as messages.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <div className="flex flex-1 items-center rounded-xl border border-line bg-panel2 px-3">
+              <span className="text-sm font-bold text-mint">₹</span>
+              <input
+                value={rewardAmount}
+                onChange={(event) => setRewardAmount(event.target.value.replace(/[^\d.]/g, ""))}
+                inputMode="decimal"
+                placeholder={room.tip_amount > 0 ? `Agreed: ₹${Number(room.tip_amount).toFixed(0)}` : "Cash amount (optional)"}
+                aria-label="Negotiated cash reward"
+                className="w-full bg-transparent py-2.5 pl-1.5 text-sm focus:outline-none"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={saveReward}
+              disabled={rewardBusy || !rewardAmount}
+              className="rounded-xl border border-mint/40 px-3 text-xs font-bold text-mint disabled:opacity-40"
+            >
+              {rewardBusy ? "Saving…" : "Set cash"}
+            </button>
+          </div>
+          {room.tip_amount > 0 && <p className="mt-1 text-[11px] text-mint">Agreed cash reward: ₹{Number(room.tip_amount).toFixed(0)}</p>}
+          {rewardError && <p className="mt-1 text-[11px] text-danger">{rewardError}</p>}
+        </div>
+      )}
+
       {/* quick replies + composer */}
       {!room.archived && room.status !== "expired" && room.status !== "cancelled" && (
         <div className="safe-bottom pb-2">
@@ -315,7 +361,7 @@ function UpiFooter({ requestId, amount }: { requestId: string; amount: number })
   if (!vpa) {
     return (
       <p className="mt-2 text-[11px] text-muted">
-        Tip ₹{amount.toFixed(0)} — the helper&apos;s UPI ID appears here for one-tap payment.
+        Cash reward ₹{amount.toFixed(0)} — the helper&apos;s UPI ID appears here for one-tap payment.
       </p>
     );
   }

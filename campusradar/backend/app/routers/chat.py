@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.deps import get_complete_user
 from app.models import HelpRequest, User
-from app.schemas import ChatOut, MessageOut, PublicUserOut
+from app.schemas import ChatOut, MessageOut, PublicUserOut, RewardIn
 from app.services.chat import history, lock_deadline, post_message
 from app.services.requests import is_participant
 
@@ -59,3 +59,17 @@ async def send_message(request_id: str, payload: dict,
     msg = await post_message(db, req, user, str(payload.get("body", "")),
                              str(payload.get("kind", "text")))
     return MessageOut.model_validate(msg)
+
+
+@router.post("/{request_id}/reward", response_model=ChatOut)
+async def set_reward(request_id: str, payload: RewardIn,
+                     user: User = Depends(get_complete_user),
+                     db: AsyncSession = Depends(get_db)) -> ChatOut:
+    """Set the negotiated cash reward while the private chat is active."""
+    req = await _participant_request(db, request_id, user.id)
+    if enum_val(req.status) != "accepted" or req.chat_archived:
+        raise HTTPException(409, "Cash reward can only be changed in an active chat")
+    req.tip_amount = payload.amount
+    await db.commit()
+    await db.refresh(req)
+    return await open_chat(request_id, user, db)

@@ -5,8 +5,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { fmtDistance, fmtTimeLeft, haversineMeters } from "@/lib/geo";
-import { categoryOf, URGENCY_META } from "@/lib/categories";
-import { GenderBadge, UrgencyChip } from "@/components/Badges";
+import { GenderBadge } from "@/components/Badges";
 import { useLivePosition } from "@/hooks/useGeolocation";
 import type { RequestCard as Card } from "@/lib/types";
 
@@ -19,7 +18,6 @@ interface Props {
 }
 
 export default function RequestCard({ req, variant, busy, onAccept }: Props) {
-  const cat = categoryOf(req.category);
   const me = useLivePosition();
   const dist = me ? haversineMeters(me.lat, me.lng, req.lat, req.lng) : null;
   const [left, setLeft] = useState(() => fmtTimeLeft(req.expires_at));
@@ -34,13 +32,9 @@ export default function RequestCard({ req, variant, busy, onAccept }: Props) {
   return (
     <article className="slide-up rounded-2xl border border-line bg-panel p-4">
       <div className="flex items-start justify-between gap-2">
-        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/5 ${cat.color}`}>
-          {cat.icon}
-        </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-sm font-bold">{cat.label}</span>
-            <UrgencyChip urgency={req.urgency} />
+            <span className="text-sm font-bold">Help request</span>
             {req.gender_filter === "female_only" && (
               <span className="rounded-full bg-pink-500/15 px-2 py-0.5 text-[10px] font-bold text-pink-300">
                 female helpers only
@@ -58,9 +52,6 @@ export default function RequestCard({ req, variant, busy, onAccept }: Props) {
         </span>
         {req.landmark && <span className="truncate">{req.landmark}</span>}
         {dist != null && <span>≈ {fmtDistance(dist)} from you</span>}
-        {req.tip_amount > 0 && (
-          <span className="font-bold text-mint">₹{Number(req.tip_amount).toFixed(0)} tip</span>
-        )}
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-2">

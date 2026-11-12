@@ -119,14 +119,16 @@ class HelpRequest(Base):
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=new_uuid)
     requester_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False)
     helper_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id"))
-    category: Mapped[str] = mapped_column(String(32), nullable=False)
+    # Legacy storage for old rows; request APIs no longer expose a category.
+    category: Mapped[str] = mapped_column(String(32), default="general", server_default="general", nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     landmark: Mapped[str | None] = mapped_column(Text)
     lat: Mapped[float] = mapped_column(nullable=False)
     lng: Mapped[float] = mapped_column(nullable=False)
     radius_m: Mapped[int] = mapped_column(Integer, default=500, nullable=False)
+    # Legacy storage for old rows; request APIs no longer expose urgency.
     urgency: Mapped[Urgency] = mapped_column(Enum(Urgency, name="urgency_enum", native_enum=True),
-                                             default=Urgency.normal, nullable=False)
+                                             default=Urgency.normal, server_default="normal", nullable=False)
     gender_filter: Mapped[str] = mapped_column(String(16), default="everyone", nullable=False)
     tip_amount: Mapped[float] = mapped_column(Numeric(10, 2), default=0, nullable=False)
     status: Mapped[RequestStatus] = mapped_column(Enum(RequestStatus, name="request_status", native_enum=True),

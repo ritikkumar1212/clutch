@@ -1,8 +1,6 @@
 """CampusRadar backend configuration (env-driven, 12-factor)."""
 from __future__ import annotations
 
-import json
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -32,7 +30,6 @@ class Settings(BaseSettings):
 
     # --- rewards (rule 6) ---------------------------------------------------
     BASE_POINTS: int = 10
-    URGENCY_BONUS: str = '{"normal": 0, "urgent": 5, "emergency": 10}'
     SIGNUP_BONUS: int = 5
 
     # --- push (rule: web-push) ---------------------------------------------
@@ -48,10 +45,5 @@ class Settings(BaseSettings):
     @property
     def allowed_domains(self) -> list[str]:
         return [d.strip().lower() for d in self.ALLOWED_EMAIL_DOMAINS.split(",") if d.strip()]
-
-    @property
-    def urgency_bonus_map(self) -> dict[str, int]:
-        return json.loads(self.URGENCY_BONUS)
-
 
 settings = Settings()

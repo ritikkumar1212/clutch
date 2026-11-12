@@ -34,7 +34,7 @@ Interactive docs: `http://<host>:8000/docs` (OpenAPI).
 | Method | Path | Body | Notes |
 |---|---|---|---|
 | POST | `/requests/estimate` | `{lat, lng, radius_m, gender_filter}` | **aggregate count** for the radar screen ("N matching helpers online in this zone"). `radius_m ∈ {200,500,1000,2000}` |
-| POST | `/requests` | `{category, description, landmark?, lat, lng, radius_m, urgency, gender_filter, tip_amount}` | creates + broadcasts (WS `new_request` + web-push). Response includes `viewers_hint` with the reach |
+| POST | `/requests` | `{description, landmark?, lat, lng, radius_m, gender_filter}` | creates + broadcasts (WS `new_request` + web-push). Response includes `viewers_hint` with the reach |
 | GET | `/requests/feed` | — | only what the server TARGETED to this user (rule 4), proximity-ordered |
 | GET | `/requests/mine` | — | created + helping, with live `viewer_count` for own rows |
 | GET | `/requests/{id}` | — | detail; requester also gets `viewer_count`, `viewers_hint`, and post-completion `helper_upi_vpa` (rule 6) |
@@ -46,6 +46,7 @@ Interactive docs: `http://<host>:8000/docs` (OpenAPI).
 | POST | `/requests/late-match` | — | catch-up: helpers whose heartbeat landed after creation get open requests within radius added once |
 | GET | `/chat/{id}` | — | participants only: `{role, counterpart, status, archived, lock_at, messages[]}` |
 | POST | `/chat/{id}/messages` | `{body, kind}` | REST fallback mirroring the WS chat event |
+| POST | `/chat/{id}/reward` | `{amount}` | sets the negotiated cash reward inside the private chat; item or portion requests remain chat messages |
 
 ## WebSocket `GET /ws?token=<JWT>`
 
@@ -71,6 +72,6 @@ Server → client events (all JSON, typed in `frontend/src/lib/types.ts`):
 
 - categories: `ride, medicine, printout, charger, study, errand`
 - radii: `200, 500, 1000, 2000` metres
-- urgency: `normal (+0) / urgent (+5) / emergency (+10)` — on top of the +10 base
+- Every completed help awards exactly 10 points.
 - request TTL 20 min · chat lock 30 min after completion · chat purge 24 h
 - PIN: 4 digits, max 5 wrong attempts

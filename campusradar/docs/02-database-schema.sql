@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS help_requests (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   requester_id  UUID NOT NULL REFERENCES users(id),
   helper_id     UUID REFERENCES users(id),
-  category      TEXT NOT NULL,          -- ride | medicine | printout | charger | study | errand
+  category      TEXT NOT NULL DEFAULT 'general', -- legacy storage; not exposed in request APIs
   description   TEXT NOT NULL,
   landmark      TEXT,                   -- human label of the target pin (reverse-geocoded client-side)
   lat           DOUBLE PRECISION NOT NULL,   -- TARGET pin only — never the requester's live location

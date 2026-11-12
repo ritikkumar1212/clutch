@@ -1,5 +1,4 @@
 export type Gender = "male" | "female" | "other";
-export type Urgency = "normal" | "urgent" | "emergency";
 export type RequestStatus = "open" | "accepted" | "completed" | "expired" | "cancelled";
 
 export interface User {
@@ -21,15 +20,12 @@ export interface PublicUser {
 
 export interface RequestCard {
   id: string;
-  category: string;
   description: string;
   landmark: string | null;
   lat: number;
   lng: number;
   radius_m: number;
-  urgency: Urgency;
   gender_filter: "everyone" | "female_only";
-  tip_amount: number;
   status: RequestStatus;
   expires_at: string;
   created_at: string | null;
