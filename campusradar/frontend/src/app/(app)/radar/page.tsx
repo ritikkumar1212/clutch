@@ -22,7 +22,9 @@ export default function RadarPage() {
   const [posting, setPosting] = useState(false);
 
   async function post() {
-    if (lat == null || lng == null) return setError("Drop the target pin on the map first");
+    if (lat == null || lng == null) {
+      return setError("Please drop a pin so the helper knows where to come and help you");
+    }
     if (description.trim().length < 5) return setError("Describe what you need (a few words)");
     setPosting(true);
     setError("");
@@ -66,15 +68,6 @@ export default function RadarPage() {
           if (lm !== undefined) setLandmark(lm);
         }}
       />
-
-      <div className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-neon/30 bg-neon/5 px-3 py-2.5">
-        <svg viewBox="0 0 24 24" className="h-4 w-4 text-neon" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-          <circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" fill="currentColor" />
-        </svg>
-        <p className="text-sm font-semibold text-neon">
-          {lat == null ? "Drop a pin where help is needed" : "Your request will reach active university users"}
-        </p>
-      </div>
 
       <textarea
         value={description}
