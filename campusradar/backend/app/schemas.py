@@ -7,7 +7,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-VALID_CATEGORIES = {"ride", "medicine", "printout", "charger", "study", "errand"}
 VALID_RADII = {200, 500, 1000, 2000}
 
 
@@ -144,22 +143,12 @@ class EstimateOut(BaseModel):
 
 
 class RequestCreateIn(BaseModel):
-    category: str
     description: str = Field(min_length=5, max_length=500)
     landmark: str | None = Field(default=None, max_length=160)
     lat: float
     lng: float
     radius_m: int
-    urgency: Literal["normal", "urgent", "emergency"] = "normal"
     gender_filter: Literal["everyone", "female_only"] = "everyone"
-    tip_amount: float = Field(default=0, ge=0, le=10_000)
-
-    @field_validator("category")
-    @classmethod
-    def category_valid(cls, v: str) -> str:
-        if v not in VALID_CATEGORIES:
-            raise ValueError("unknown category")
-        return v
 
     @field_validator("radius_m")
     @classmethod
@@ -171,15 +160,12 @@ class RequestCreateIn(BaseModel):
 
 class RequestOut(BaseModel):
     id: str
-    category: str
     description: str
     landmark: str | None
     lat: float
     lng: float
     radius_m: int
-    urgency: str
     gender_filter: str
-    tip_amount: float
     status: str
     expires_at: datetime
     accepted_at: datetime | None = None
@@ -205,6 +191,10 @@ class AcceptOut(BaseModel):
 
 class VerifyPinIn(BaseModel):
     pin: str = Field(min_length=4, max_length=4, pattern=r"^\d{4}$")
+
+
+class RewardIn(BaseModel):
+    amount: float = Field(ge=0, le=10_000)
 
 
 class VerifyPinOut(BaseModel):
@@ -233,7 +223,7 @@ class ChatOut(BaseModel):
     status: str
     archived: bool
     lock_at: datetime | None = None
-    tip_amount: float = 0.0            # drives the requester's post-completion UPI button
+    tip_amount: float = 0.0            # negotiated private-chat cash reward
     messages: list[MessageOut]
 
 

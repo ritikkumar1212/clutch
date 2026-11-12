@@ -6,8 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { ws } from "@/lib/ws";
-import { categoryOf } from "@/lib/categories";
-import { GenderBadge, UrgencyChip } from "@/components/Badges";
+import { GenderBadge } from "@/components/Badges";
 import ViewerCounter from "@/components/ViewerCounter";
 import type { RequestCard as Card, WsEvents } from "@/lib/types";
 
@@ -105,15 +104,10 @@ export default function RequestsPage() {
   }
 
   const row = (r: Card, kind: "created" | "helping") => {
-    const cat = categoryOf(r.category);
     return (
       <article key={r.id} className="slide-up rounded-2xl border border-line bg-panel p-4">
         <div className="flex items-center justify-between gap-2">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 ${cat.color}`}>
-            {cat.icon}
-          </div>
-          <div className="flex-1 truncate text-[13px] font-bold">{cat.label}</div>
-          <UrgencyChip urgency={r.urgency} />
+          <div className="flex-1 truncate text-[13px] font-bold">Help request</div>
           {statusChip(r.status)}
         </div>
         <p className="mt-2 text-[13px] text-slate-300">{r.description}</p>

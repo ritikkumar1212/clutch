@@ -35,16 +35,3 @@ export function PointsPill({ points }: { points: number }) {
     </span>
   );
 }
-
-export function UrgencyChip({ urgency }: { urgency: string }) {
-  const map: Record<string, string> = {
-    normal: "bg-white/10 text-slate-300",
-    urgent: "bg-amber-400/15 text-amber-300",
-    emergency: "bg-red-500/15 text-red-300",
-  };
-  return (
-    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${map[urgency] || map.normal}`}>
-      {urgency}
-    </span>
-  );
-}

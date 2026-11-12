@@ -58,15 +58,13 @@ async def create_request(payload: RequestCreateIn,
                          db: AsyncSession = Depends(get_db)) -> RequestDetailOut:
     req = HelpRequest(
         requester_id=user.id,
-        category=payload.category,
+        category="general",  # legacy database column; never exposed in the API
         description=payload.description.strip(),
         landmark=payload.landmark,
         lat=payload.lat,
         lng=payload.lng,
         radius_m=payload.radius_m,
-        urgency=payload.urgency,                      # type: ignore[arg-type]
         gender_filter=payload.gender_filter,
-        tip_amount=payload.tip_amount,
         status=RequestStatus.open,
         expires_at=HelpRequest.new_expires_at(),      # rule 7: 20-minute TTL
     )

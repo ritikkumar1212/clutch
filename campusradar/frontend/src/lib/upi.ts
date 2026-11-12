@@ -11,7 +11,7 @@ export function buildUpiLink(vpa: string, amount: number, note: string, handle: 
     pa: cleanVpa,
     pn: handle || "CampusRadar Helper",
     cu: "INR",
-    tn: note.slice(0, 40) || "CampusRadar tip",
+    tn: note.slice(0, 40) || "CampusRadar reward",
   });
   if (amount > 0) params.set("am", amount.toFixed(2));
   return { href: `upi://pay?${params.toString()}`, vpa: cleanVpa, amount };

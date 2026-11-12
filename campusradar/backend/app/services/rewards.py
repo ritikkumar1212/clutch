@@ -1,4 +1,4 @@
-"""Help Points rewards engine (rule 6): +10 base + urgency bonus, ledger, leaderboard."""
+"""Help Points rewards engine: 10 points per completed help, ledger, leaderboard."""
 from __future__ import annotations
 
 from app.models import enum_val
@@ -7,29 +7,27 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.models import LedgerEntry, LedgerReason, Urgency, User
+from app.models import LedgerEntry, LedgerReason, User
 from app.redis_client import rds
 from app.services.geo import cache_user_meta, notify_user
 
 
-def completion_points(urgency: Urgency) -> int:
-    bonus = settings.urgency_bonus_map.get(urgency.value if hasattr(urgency, "value") else str(urgency), 0)
-    return settings.BASE_POINTS + bonus
+def completion_points() -> int:
+    return 10
 
 
 async def award_completion(
-    db: AsyncSession, helper: User, request_id: str, urgency: Urgency
+    db: AsyncSession, helper: User, request_id: str
 ) -> int:
     """Credit points, append ledger row, refresh caches, notify the helper."""
-    points = completion_points(urgency)
+    points = completion_points()
     helper.help_points += points
     db.add(LedgerEntry(
         user_id=helper.id,
         request_id=request_id,
         points=points,
         reason=LedgerReason.completion,
-        note=f"base {settings.BASE_POINTS} + urgency bonus "
-             f"{points - settings.BASE_POINTS} ({urgency.value})",
+        note="10 points for completed help",
     ))
     await db.commit()
     await cache_user_meta(helper.id, enum_val(helper.gender), helper.handle, helper.help_points)

@@ -6,7 +6,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import MapPicker from "@/components/MapPicker";
 import { api, getUser } from "@/lib/api";
-import { CATEGORIES, URGENCY_META } from "@/lib/categories";
 import { GenderBadge } from "@/components/Badges";
 import type { User } from "@/lib/types";
 
@@ -21,14 +20,11 @@ export default function RadarPage() {
   const router = useRouter();
   const me = typeof window !== "undefined" ? getUser() : null;
 
-  const [category, setCategory] = useState("medicine");
   const [description, setDescription] = useState("");
-  const [urgency, setUrgency] = useState<"normal" | "urgent" | "emergency">("urgent");
   const [radiusM, setRadiusM] = useState(500);
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [landmark, setLandmark] = useState<string | null>(null);
-  const [tip, setTip] = useState("0");
   const [femaleOnly, setFemaleOnly] = useState(false);
   const [reach, setReach] = useState<number | null>(null);
   const [estimating, setEstimating] = useState(false);
@@ -73,15 +69,12 @@ export default function RadarPage() {
       await api("/requests", {
         method: "POST",
         body: JSON.stringify({
-          category,
           description: description.trim(),
           landmark,
           lat,
           lng,
           radius_m: radiusM,
-          urgency,
           gender_filter: femaleOnly ? "female_only" : "everyone",
-          tip_amount: Number(tip) || 0,
         }),
       });
       router.push("/requests"); // live viewer counter lives there
@@ -143,22 +136,6 @@ export default function RadarPage() {
         </p>
       </div>
 
-      {/* category grid */}
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        {CATEGORIES.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => setCategory(c.id)}
-            className={`rounded-xl border p-3 text-left transition active:scale-95 ${
-              category === c.id ? "border-neon bg-neon/10" : "border-line bg-panel"
-            }`}
-          >
-            <span className={`flex h-6 w-6 items-center justify-center ${c.color}`}>{c.icon}</span>
-            <p className="mt-1.5 text-[11px] font-bold leading-tight">{c.label}</p>
-          </button>
-        ))}
-      </div>
-
       <textarea
         value={description}
         onChange={(e) => setDescription(e.target.value)}
@@ -168,33 +145,8 @@ export default function RadarPage() {
         className="mt-4 w-full rounded-xl border border-line bg-panel px-4 py-3 text-sm placeholder:text-muted/60 focus:border-neon focus:outline-none"
       />
 
-      {/* urgency */}
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        {(["normal", "urgent", "emergency"] as const).map((u) => (
-          <button
-            key={u}
-            onClick={() => setUrgency(u)}
-            className={`rounded-xl border py-2.5 text-xs font-bold transition active:scale-95 ${
-              urgency === u ? "border-neon bg-neon/10 text-neon" : "border-line bg-panel text-muted"
-            }`}
-          >
-            {URGENCY_META[u].label}
-            <span className="ml-1 font-normal text-[10px] opacity-70">+{URGENCY_META[u].bonus} pts</span>
-          </button>
-        ))}
-      </div>
-
-      {/* tip + gender filter row */}
-      <div className="mt-3 flex gap-2">
-        <div className="flex flex-1 items-center rounded-xl border border-line bg-panel px-3">
-          <span className="text-sm font-bold text-mint">₹</span>
-          <input
-            inputMode="decimal" value={tip} onChange={(e) => setTip(e.target.value.replace(/[^\d.]/g, ""))}
-            placeholder="Optional tip"
-            aria-label="Tip amount"
-            className="w-full bg-transparent py-3 pl-1.5 text-sm placeholder:text-muted/60 focus:outline-none"
-          />
-        </div>
+      {/* helper eligibility filter */}
+      <div className="mt-3 flex justify-end">
         <button
           onClick={() => setFemaleOnly(!femaleOnly)}
           className={`flex items-center justify-center gap-1.5 rounded-xl border px-4 text-xs font-bold transition active:scale-95 ${
