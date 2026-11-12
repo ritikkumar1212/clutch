@@ -1,8 +1,8 @@
 "use client";
 
-/* Campus Radar map: target-pin picker + translucent radius circle.
+/* Campus Radar map: target-pin picker.
    PRIVACY RULE 1: this map NEVER renders other users — it only shows the
-   pin the REQUESTER chooses and their selected radius. Other students'
+   pin the REQUESTER chooses. Other students'
    GPS coordinates stay server-side in Redis and are never sent to clients. */
 import { useCallback, useEffect, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
@@ -11,7 +11,6 @@ import { UIET_CENTER } from "@/lib/geo";
 interface Props {
   lat: number | null;
   lng: number | null;
-  radiusM: number;
   onPinChange: (lat: number, lng: number, landmark?: string | null) => void;
   compact?: boolean;
 }
@@ -38,11 +37,10 @@ const PIN_SVG = `
   </svg>
 </div>`;
 
-export default function MapPicker({ lat, lng, radiusM, onPinChange, compact }: Props) {
+export default function MapPicker({ lat, lng, onPinChange, compact }: Props) {
   const divRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const markerRef = useRef<import("leaflet").Marker | null>(null);
-  const circleRef = useRef<import("leaflet").Circle | null>(null);
   const routeRef = useRef<import("leaflet").Polyline | null>(null);
   const LRef = useRef<typeof import("leaflet") | null>(null);
   const [locating, setLocating] = useState(false);
@@ -127,7 +125,6 @@ export default function MapPicker({ lat, lng, radiusM, onPinChange, compact }: P
       mapRef.current?.remove();
       mapRef.current = null;
       markerRef.current = null;
-      circleRef.current = null;
       routeRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -145,18 +142,6 @@ export default function MapPicker({ lat, lng, radiusM, onPinChange, compact }: P
       });
     } else {
       markerRef.current.setLatLng([la, ln]);
-    }
-    if (!circleRef.current) {
-      circleRef.current = L.circle([la, ln], {
-        radius: radiusM,
-        color: "#22d3ee",
-        weight: 1.5,
-        opacity: 0.8,
-        fillColor: "#22d3ee",
-        fillOpacity: 0.10,
-      }).addTo(mapRef.current!);
-    } else {
-      circleRef.current.setLatLng([la, ln]);
     }
     mapRef.current!.panTo([la, ln], { animate: true });
     emitChange(la, ln, geocode);
@@ -361,10 +346,6 @@ export default function MapPicker({ lat, lng, radiusM, onPinChange, compact }: P
       { enableHighAccuracy: true, timeout: 12000 },
     );
   }
-
-  useEffect(() => {
-    circleRef.current?.setRadius(radiusM);
-  }, [radiusM]);
 
   useEffect(() => {
     if (lat != null && lng != null && mapRef.current) {

@@ -7,9 +7,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-VALID_RADII = {200, 500, 1000, 2000}
-
-
 def normalize_phone(raw: str) -> str:
     """Normalize a 10-digit Indian mobile number or E.164 string to +<digits>."""
     cleaned = re.sub(r"[\s\-().]+", "", raw.strip())
@@ -124,38 +121,12 @@ class HeartbeatIn(BaseModel):
 
 
 # --------------------------------------------------------------- requests ----
-class EstimateIn(BaseModel):
-    lat: float
-    lng: float
-    radius_m: int
-    gender_filter: Literal["everyone", "female_only"] = "everyone"
-
-    @field_validator("radius_m")
-    @classmethod
-    def radius_valid(cls, v: int) -> int:
-        if v not in VALID_RADII:
-            raise ValueError(f"radius_m must be one of {sorted(VALID_RADII)}")
-        return v
-
-
-class EstimateOut(BaseModel):
-    matching_helpers: int
-
-
 class RequestCreateIn(BaseModel):
     description: str = Field(min_length=5, max_length=500)
     landmark: str | None = Field(default=None, max_length=160)
     lat: float
     lng: float
-    radius_m: int
     gender_filter: Literal["everyone", "female_only"] = "everyone"
-
-    @field_validator("radius_m")
-    @classmethod
-    def radius_valid(cls, v: int) -> int:
-        if v not in VALID_RADII:
-            raise ValueError(f"radius_m must be one of {sorted(VALID_RADII)}")
-        return v
 
 
 class RequestOut(BaseModel):
@@ -164,7 +135,6 @@ class RequestOut(BaseModel):
     landmark: str | None
     lat: float
     lng: float
-    radius_m: int
     gender_filter: str
     status: str
     expires_at: datetime

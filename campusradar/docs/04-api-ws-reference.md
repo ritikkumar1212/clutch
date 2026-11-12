@@ -33,8 +33,7 @@ Interactive docs: `http://<host>:8000/docs` (OpenAPI).
 
 | Method | Path | Body | Notes |
 |---|---|---|---|
-| POST | `/requests/estimate` | `{lat, lng, radius_m, gender_filter}` | **aggregate count** for the radar screen ("N matching helpers online in this zone"). `radius_m ∈ {200,500,1000,2000}` |
-| POST | `/requests` | `{description, landmark?, lat, lng, radius_m, gender_filter}` | creates + broadcasts (WS `new_request` + web-push). Response includes `viewers_hint` with the reach |
+| POST | `/requests` | `{description, landmark?, lat, lng, gender_filter}` | creates + broadcasts to all active university users (WS `new_request` + web-push). Response includes `viewers_hint` with the reach |
 | GET | `/requests/feed` | — | only what the server TARGETED to this user (rule 4), proximity-ordered |
 | GET | `/requests/mine` | — | created + helping, with live `viewer_count` for own rows |
 | GET | `/requests/{id}` | — | detail; requester also gets `viewer_count`, `viewers_hint`, and post-completion `helper_upi_vpa` (rule 6) |
@@ -43,7 +42,7 @@ Interactive docs: `http://<host>:8000/docs` (OpenAPI).
 | POST | `/requests/{id}/accept` | — | atomic row lock → first helper wins, others get 409; blocks male users on `female_only` (403) |
 | POST | `/requests/{id}/verify-pin` | `{pin}` | helper only → completed; awards points; returns `{points_awarded, helper_total_points, upi:{vpa, amount}}` |
 | POST | `/requests/{id}/cancel` | — | requester only, while open |
-| POST | `/requests/late-match` | — | catch-up: helpers whose heartbeat landed after creation get open requests within radius added once |
+| POST | `/requests/late-match` | — | catch-up: active helpers whose heartbeat landed after creation get all open requests added once |
 | GET | `/chat/{id}` | — | participants only: `{role, counterpart, status, archived, lock_at, messages[]}` |
 | POST | `/chat/{id}/messages` | `{body, kind}` | REST fallback mirroring the WS chat event |
 | POST | `/chat/{id}/reward` | `{amount}` | sets the negotiated cash reward inside the private chat; item or portion requests remain chat messages |

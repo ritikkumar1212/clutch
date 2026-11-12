@@ -1,13 +1,9 @@
-"""Requests: radar estimate, create+broadcast, targeted feed, accept, PIN verify."""
+"""Requests: create+broadcast, university-wide feed, accept, PIN verify."""
 from __future__ import annotations
 
 from app.models import enum_val
 
 import logging
-import time
-from datetime import timedelta
-from math import asin, cos, radians, sin, sqrt
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +13,7 @@ from app.database import get_db
 from app.deps import get_complete_user
 from app.models import HelpRequest, RequestStatus, User, utcnow
 from app.redis_client import rds
-from app.schemas import (AcceptOut, EstimateIn, EstimateOut, PublicUserOut,
+from app.schemas import (AcceptOut, PublicUserOut,
                          RequestCreateIn, RequestDetailOut, RequestOut, VerifyPinIn, VerifyPinOut)
 from app.services import matching
 from app.services.geo import notify_user
@@ -41,16 +37,6 @@ async def _load_requester(db: AsyncSession, requester_id: str) -> User:
     return user
 
 
-# ------------------------------------------------- radar reach (rule 2) ------
-@router.post("/estimate", response_model=EstimateOut)
-async def estimate(payload: EstimateIn,
-                   user: User = Depends(get_complete_user),
-                   db: AsyncSession = Depends(get_db)) -> EstimateOut:
-    count = await matching.estimate_reach(db, payload.lat, payload.lng,
-                                          payload.radius_m, payload.gender_filter, user.id)
-    return EstimateOut(matching_helpers=count)
-
-
 # ------------------------------------------------------------ create ---------
 @router.post("", response_model=RequestDetailOut)
 async def create_request(payload: RequestCreateIn,
@@ -63,7 +49,7 @@ async def create_request(payload: RequestCreateIn,
         landmark=payload.landmark,
         lat=payload.lat,
         lng=payload.lng,
-        radius_m=payload.radius_m,
+        radius_m=2000,  # legacy column; matching is university-wide
         gender_filter=payload.gender_filter,
         status=RequestStatus.open,
         expires_at=HelpRequest.new_expires_at(),      # rule 7: 20-minute TTL
@@ -77,7 +63,7 @@ async def create_request(payload: RequestCreateIn,
     return RequestDetailOut(
         **matching._request_card(req, user),          # noqa: SLF001 — same projection, one source of truth
         viewer_count=0,
-        viewers_hint=f"broadcast to {reach} matching helper(s) online in this zone",
+        viewers_hint=f"broadcast to {reach} matching helper(s) online",
     )
 
 
@@ -85,7 +71,7 @@ async def create_request(payload: RequestCreateIn,
 @router.get("/feed", response_model=list[RequestOut])
 async def my_feed(user: User = Depends(get_complete_user),
                   db: AsyncSession = Depends(get_db)) -> list[RequestOut]:
-    """Only requests the server TARGETED to this user (rule 4 lives in matching.py)."""
+    """Only requests the server broadcast to this user (rule 4 lives in matching.py)."""
     ids = await rds.zrevrange(f"feed:{user.id}", 0, 49)
     if not ids:
         return []
@@ -95,7 +81,7 @@ async def my_feed(user: User = Depends(get_complete_user),
         .where(HelpRequest.id.in_(ids), HelpRequest.status == RequestStatus.open)
     )).all()
     cards = {req.id: RequestOut(**matching._request_card(req, requester)) for req, requester in rows}
-    return [cards[i] for i in ids if i in cards]      # preserve GEOSEARCH proximity order
+    return [cards[i] for i in ids if i in cards]
 
 
 # ---------------------------------------------------------------- mine -------
@@ -232,17 +218,7 @@ async def verify_pin(request_id: str, payload: VerifyPinIn,
 async def late_match(user: User = Depends(get_complete_user),
                      db: AsyncSession = Depends(get_db)) -> dict:
     """Catch-up for helpers whose heartbeat arrived after a request was created:
-    any open request whose target pin is within `radius_m` of the helper's
-    CURRENT Redis position gets added to their feed once."""
-    from app.services.geo import EXPIRY_KEY, GEO_KEY
-
-    pos = await rds.geopos(GEO_KEY, user.id)
-    if not pos or pos[0] is None:
-        return {"added": 0}
-    lng, lat = float(pos[0][0]), float(pos[0][1])
-    expiry = await rds.zscore(EXPIRY_KEY, user.id)
-    if not expiry or float(expiry) < time.time() * 1000:
-        return {"added": 0}
+    any open request is added to their feed once."""
 
     open_reqs = (await db.execute(
         select(HelpRequest).where(
@@ -254,19 +230,13 @@ async def late_match(user: User = Depends(get_complete_user),
 
     added = 0
     for req in open_reqs:
+        if req.requester_id == user.id:
+            continue
         if req.gender_filter == "female_only" and enum_val(user.gender) != "female":
             continue                                     # rule 4 again, server-side
-        distance = _haversine_m(lat, lng, req.lat, req.lng)
-        if distance <= req.radius_m and not await rds.zscore(f"feed:{user.id}", req.id):
+        if not await rds.zscore(f"feed:{user.id}", req.id):
             requester = await db.get(User, req.requester_id)
-            if requester and requester.id != user.id:
+            if requester:
                 await matching.add_to_feed_single(db, req, requester, user.id)
                 added += 1
     return {"added": added}
-
-
-def _haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
-    p1, p2 = radians(lat1), radians(lat2)
-    dp, dl = radians(lat2 - lat1), radians(lng2 - lng1)
-    a = sin(dp / 2) ** 2 + cos(p1) * cos(p2) * sin(dl / 2) ** 2
-    return 6_371_000 * 2 * asin(sqrt(a))

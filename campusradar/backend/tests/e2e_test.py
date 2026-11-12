@@ -187,22 +187,10 @@ async def scenario() -> None:
         hp_tok = {"Authorization": f"Bearer {helper['token']}"}
         h2_tok = {"Authorization": f"Bearer {helper2['token']}"}
 
-        print("\n— phase B: presence & radar estimate (rules 1-2)")
+        print("\n— phase B: presence (university-wide broadcast)")
         await heartbeat(c, helper["token"], UIET[0] + 0.0005, UIET[1] + 0.0005)
         await heartbeat(c, helper2["token"], UIET[0] + 0.001, UIET[1] + 0.001)
         await heartbeat(c, requester["token"], UIET[0], UIET[1])
-
-        r = await c.post(f"{BASE}/requests/estimate",
-                         json={"lat": UIET[0], "lng": UIET[1], "radius_m": 500, "gender_filter": "everyone"},
-                         headers=rq_tok)
-        est = r.json()["matching_helpers"]
-        check("estimate sees both male helpers in 500m", est == 2, f"count={est}")
-
-        r = await c.post(f"{BASE}/requests/estimate",
-                         json={"lat": UIET[0], "lng": UIET[1], "radius_m": 500, "gender_filter": "female_only"},
-                         headers=rq_tok)
-        check("female_only estimate excludes males (rule 4)", r.json()["matching_helpers"] == 0,
-              f"count={r.json()['matching_helpers']}")
 
         print("\n— phase C: broadcast & feed")
         req_lat, req_lng = UIET[0] + 0.0003, UIET[1] + 0.0003

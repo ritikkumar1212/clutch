@@ -1,4 +1,4 @@
-"""Geo presence & radius matching (Phase 2 core).
+"""Geo presence and university-wide helper matching.
 
 PRIVACY RULE 1: coordinates live ONLY in Redis. This module's outputs are
 user-ID lists or aggregate counts — exact positions of other users are never
@@ -49,6 +49,12 @@ async def search_within(lng: float, lat: float, radius_m: int) -> list[str]:
                                       radius=radius_m, unit="m", sort="ASC")
     except Exception:
         return []
+    return await alive_ids([m for m in members if m])
+
+
+async def online_ids() -> list[str]:
+    """Return every user with a current helper presence lease."""
+    members = await rds.zrange(EXPIRY_KEY, 0, -1)
     return await alive_ids([m for m in members if m])
 
 
@@ -123,6 +129,6 @@ async def notify_user(user_id: str, payload: dict) -> None:
 
 
 __all__ = [
-    "heartbeat", "search_within", "alive_ids", "purge_stale", "filter_candidates",
+    "heartbeat", "search_within", "online_ids", "alive_ids", "purge_stale", "filter_candidates",
     "genders_for", "cache_user_meta", "is_ws_connected", "notify_user",
 ]
