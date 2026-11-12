@@ -88,6 +88,13 @@ cd campusradar
 docker compose up --build
 ```
 
+If using the LocationIQ-powered map, load the local frontend environment file
+when starting Compose so the key is available during the Next.js build:
+
+```powershell
+docker compose --env-file frontend/.env.local up --build
+```
+
 - PWA → **http://localhost:3000** (Chrome/Android: *Install app*; iOS 16.4+: *Add to Home Screen* from Safari share sheet)
 - API docs → http://localhost:8000/docs
 - Postgres `localhost:5432` (campus/campus) — schema auto-applied on first boot
