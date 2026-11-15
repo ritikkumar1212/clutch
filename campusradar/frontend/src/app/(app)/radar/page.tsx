@@ -68,7 +68,7 @@ export default function RadarPage() {
           gender_filter: femaleOnly ? "female_only" : "everyone",
         }),
       });
-      router.push("/requests"); // live viewer counter lives there
+      router.push("/profile");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not post request");
       setPosting(false);

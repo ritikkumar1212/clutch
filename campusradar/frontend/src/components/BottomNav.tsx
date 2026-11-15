@@ -9,8 +9,6 @@ import type { WsEvents } from "@/lib/types";
 const TABS = [
   { href: "/radar", label: "Radar", icon: "radar" },
   { href: "/feed", label: "Feed", icon: "feed" },
-  { href: "/requests", label: "Tasks", icon: "tasks" },
-  { href: "/rewards", label: "Points", icon: "points" },
   { href: "/profile", label: "You", icon: "you" },
 ];
 
@@ -83,7 +81,7 @@ export default function BottomNav() {
       style={{ paddingBottom: "max(env(safe-area-inset-bottom), 6px)" }}
       aria-label="Main navigation"
     >
-      <div className="grid grid-cols-5 pt-1.5">
+      <div className="grid grid-cols-3 pt-1.5">
         {TABS.map((t) => {
           const active = pathname === t.href || pathname.startsWith(t.href + "/");
           return (

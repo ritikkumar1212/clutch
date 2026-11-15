@@ -29,7 +29,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useHeartbeat(authed); // server-side presence lease (rule 1: coordinates stay in Redis)
 
   return (
-    <div className={`mx-auto min-h-screen max-w-md safe-top ${isChat ? "pb-0" : "pb-24"}`}>
+    <div className={`app-shell mx-auto min-h-screen max-w-md safe-top ${isChat ? "pb-0" : "pb-24"}`}>
       {children}
       {!isChat && <BottomNav />}
     </div>
