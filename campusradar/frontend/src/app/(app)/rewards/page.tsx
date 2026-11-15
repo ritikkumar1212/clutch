@@ -12,7 +12,7 @@ export default function RewardsPage() {
   const [ledger, setLedger] = useState<LedgerRow[]>([]);
   const [board, setBoard] = useState<LeaderboardRow[]>([]);
   const [tab, setTab] = useState<"ledger" | "board">("board");
-  const [points, setPoints] = useState<number>(typeof window !== "undefined" ? getUser()?.help_points ?? 0 : 0);
+  const [points, setPoints] = useState(0);
 
   useEffect(() => {
     /* server is the source of truth for the balance (localStorage may be stale) */

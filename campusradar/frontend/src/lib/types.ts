@@ -22,8 +22,8 @@ export interface RequestCard {
   id: string;
   description: string;
   landmark: string | null;
-  lat: number;
-  lng: number;
+  lat: number | null;
+  lng: number | null;
   gender_filter: "everyone" | "female_only";
   status: RequestStatus;
   expires_at: string;
@@ -39,7 +39,7 @@ export interface ChatMessage {
   id: number;
   request_id: string;
   sender_id: string | null;
-  kind: "text" | "quick" | "system";
+  kind: "text" | "quick" | "system" | "attachment" | "audio";
   body: string;
   created_at: string;
 }
@@ -53,6 +53,11 @@ export interface ChatRoom {
   lock_at: string | null;
   tip_amount: number;
   messages: ChatMessage[];
+}
+
+export interface SharedLocations {
+  requester: { lat: number; lng: number } | null;
+  helper: { lat: number; lng: number } | null;
 }
 
 export interface LedgerRow {
@@ -83,6 +88,12 @@ export interface WsEvents {
   chat_message: { message: ChatMessage };
   chat_typing: { request_id: string; handle: string };
   chat_locked: { request_id: string };
+  call_signal: {
+    request_id: string;
+    sender_id: string;
+    signal: "offer" | "answer" | "ice" | "hangup";
+    data?: unknown;
+  };
   points_awarded: { points: number; total: number; request_id: string };
   error: { request_id: string; code: number; detail: string };
   pong: { online_users: number };

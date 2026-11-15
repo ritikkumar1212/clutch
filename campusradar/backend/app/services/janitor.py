@@ -16,6 +16,10 @@ INTERVAL_SECONDS = 20
 async def _run_cycle() -> None:
     async with SessionLocal() as db:
         try:
+            cancelled = await request_svc.cancel_stale_active_requests(db)
+            if cancelled:
+                log.info("cancelled %d stale active request(s): %s", len(cancelled), cancelled)
+
             expired = await request_svc.expire_open_requests(db)
             for req_id in expired:
                 await request_svc.notify_expired_requester(db, req_id)

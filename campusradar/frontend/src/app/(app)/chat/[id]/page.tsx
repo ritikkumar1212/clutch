@@ -8,10 +8,11 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { api, getToken, getUser } from "@/lib/api";
 import { ws } from "@/lib/ws";
-import { fmtClock } from "@/lib/geo";
-import { QUICK_REPLIES } from "@/lib/categories";
+import { fmtDateTime } from "@/lib/geo";
 import { GenderBadge } from "@/components/Badges";
 import PinInput from "@/components/PinInput";
+import LiveLocationMap from "@/components/LiveLocationMap";
+import CallControls from "@/components/CallControls";
 import { buildUpiLink } from "@/lib/upi";
 import type { ChatMessage, ChatRoom, WsEvents } from "@/lib/types";
 
@@ -21,12 +22,18 @@ interface VerifyResult {
   upi: { vpa: string | null; amount: number };
 }
 
+interface MediaMessage {
+  url: string;
+  name: string;
+  mime: string;
+}
+
 export default function ChatPage() {
   const params = useParams<{ id: string }>();
   const requestId = params.id;
-  const me = typeof window !== "undefined" ? getUser() : null;
 
   const [room, setRoom] = useState<ChatRoom | null>(null);
+  const [me, setMe] = useState<ReturnType<typeof getUser>>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [pin, setPin] = useState("");
@@ -37,8 +44,19 @@ export default function ChatPage() {
   const [rewardAmount, setRewardAmount] = useState("");
   const [rewardBusy, setRewardBusy] = useState(false);
   const [rewardError, setRewardError] = useState("");
+  const [openSection, setOpenSection] = useState<"map" | "money" | "pin" | null>(null);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [composerError, setComposerError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const audioStreamRef = useRef<MediaStream | null>(null);
   const completedRef = useRef(false);
+
+  useEffect(() => {
+    setMe(getUser());
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -90,6 +108,50 @@ export default function ChatPage() {
       await api(`/chat/${requestId}/messages`, { method: "POST", body: JSON.stringify({ body, kind }) });
     } catch (err) {
       console.warn(err);
+    }
+  }
+
+  async function uploadFile(file: File) {
+    setComposerError("");
+    const form = new FormData();
+    form.append("file", file);
+    try {
+      await api(`/chat/${requestId}/uploads`, { method: "POST", body: form });
+    } catch (err) {
+      setComposerError(err instanceof Error ? err.message : "Could not upload file");
+    }
+  }
+
+  async function toggleRecording() {
+    if (recording) {
+      recorderRef.current?.stop();
+      audioStreamRef.current?.getTracks().forEach((track) => track.stop());
+      setRecording(false);
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setComposerError("Voice messages are not supported in this browser");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size) chunks.push(event.data);
+      };
+      recorder.onstop = () => {
+        const audio = new File([new Blob(chunks, { type: recorder.mimeType })], `voice-${Date.now()}.webm`, {
+          type: recorder.mimeType || "audio/webm",
+        });
+        void uploadFile(audio);
+      };
+      audioStreamRef.current = stream;
+      recorderRef.current = recorder;
+      recorder.start();
+      setRecording(true);
+    } catch {
+      setComposerError("Microphone permission is required");
     }
   }
 
@@ -153,10 +215,13 @@ export default function ChatPage() {
 
   const isHelper = room.role === "helper";
   const canVerify = isHelper && room.status === "accepted" && !room.archived;
+  const chatOpenedMessage = messages.find(
+    (message) => message.kind === "system" && message.body.startsWith("Chat opened."),
+  );
   return (
-    <main className="flex min-h-screen flex-col px-4 pt-2">
+    <main className="flex h-[100dvh] flex-col overflow-hidden px-4 pt-1">
       {/* header */}
-      <header className="mb-2 flex items-center gap-3 border-b border-line pb-3">
+      <header className="mb-1 flex items-center gap-2 border-b border-line pb-2">
         <Link href={isHelper ? "/requests" : "/requests"} className="text-muted" aria-label="Back">
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M15 18l-6-6 6-6" />
@@ -168,29 +233,93 @@ export default function ChatPage() {
             <GenderBadge gender={room.counterpart.gender} verified={room.counterpart.gender_verified} />
             <span className="text-[10px] font-medium uppercase text-muted">{room.role === "requester" ? "helper" : "you help"}</span>
           </p>
-          <p className="text-[11px] text-muted">
-            {room.archived
-              ? "chat locked for privacy"
-              : room.status === "completed"
-                ? "verified meeting"
-                : room.status === "accepted"
-                  ? "coordinate, meet, then verify PIN"
-                  : room.status}
-          </p>
+          {room.archived && <p className="text-[11px] text-muted">chat locked for privacy</p>}
         </div>
+        {(room.status === "accepted" || room.status === "completed") && (
+          <CallControls requestId={requestId} userId={me?.id ?? null} counterpartHandle={room.counterpart.handle} />
+        )}
       </header>
 
+      {(room.status === "accepted" || room.status === "completed") && (
+        <>
+          <div className="mb-3 flex shrink-0 flex-row items-start gap-2">
+            <button
+              type="button"
+              onClick={() => setOpenSection((current) => current === "map" ? null : "map")}
+              className={`flex h-9 w-9 items-center justify-center rounded-full border transition active:scale-90 ${openSection === "map" ? "border-neon bg-neon/15 text-neon" : "border-line bg-panel text-muted"}`}
+              aria-label="Go to live map"
+              title="Map"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="m9 18-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z" />
+                <path d="M9 3v15m6-12v15" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpenSection((current) => current === "money" ? null : "money")}
+              className={`flex h-9 w-9 items-center justify-center rounded-full border transition active:scale-90 ${openSection === "money" ? "border-mint bg-mint/15 text-mint" : "border-line bg-panel text-mint"}`}
+              aria-label="Go to money reward"
+              title="Money"
+            >
+              <span className="text-base font-bold">₹</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpenSection((current) => current === "pin" ? null : "pin")}
+              className={`flex h-9 w-9 items-center justify-center rounded-full border transition active:scale-90 ${openSection === "pin" ? "border-violet bg-violet/15 text-violet" : "border-line bg-panel text-violet"}`}
+              aria-label="Go to PIN"
+              title="PIN"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <circle cx="8" cy="15" r="4" />
+                <path d="m11 12 8-8m-2 2 2 2m-5 1 2 2" />
+              </svg>
+            </button>
+          </div>
+          {openSection === "map" && (
+            <LiveLocationMap requestId={requestId} role={room.role} />
+          )}
+        </>
+      )}
+
       {/* messages */}
-      <div className="scroll-thin flex-1 space-y-2 overflow-y-auto py-3" style={{ maxHeight: "calc(100vh - 330px)" }}>
+      <div className="scroll-thin min-h-0 flex-1 space-y-2 overflow-y-auto py-2">
         {messages.map((m) => {
           if (m.kind === "system") {
+            if (m.body.startsWith("Chat opened.")) return null;
             return (
               <p key={m.id} className="mx-auto max-w-[85%] rounded-xl bg-white/5 px-3 py-1.5 text-center text-[11px] leading-relaxed text-muted">
                 {m.body}
+                <span className="mt-1 block text-[9px] opacity-70">{fmtDateTime(m.created_at)}</span>
               </p>
             );
           }
           const mine = m.sender_id === me?.id;
+          if (m.kind === "attachment" || m.kind === "audio") {
+            let media: MediaMessage | null = null;
+            try {
+              media = JSON.parse(m.body) as MediaMessage;
+            } catch {
+              media = null;
+            }
+            return (
+              <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[78%] rounded-2xl px-3 py-2 ${mine ? "bg-neon text-ink" : "bg-panel2 text-slate-200"}`}>
+                  {media && m.kind === "audio" && <audio controls src={media.url} className="max-w-full" />}
+                  {media && m.kind === "attachment" && media.mime.startsWith("image/") && (
+                    <a href={media.url} target="_blank" rel="noreferrer">
+                      <img src={media.url} alt={media.name} className="max-h-56 rounded-lg object-cover" />
+                    </a>
+                  )}
+                  {media && m.kind === "attachment" && !media.mime.startsWith("image/") && (
+                    <a href={media.url} target="_blank" rel="noreferrer" className="text-sm underline">{media.name}</a>
+                  )}
+                  <span className="ml-2 text-[9px] text-muted">{fmtDateTime(m.created_at)}</span>
+                </div>
+              </div>
+            );
+          }
           return (
             <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
               <div
@@ -204,7 +333,7 @@ export default function ChatPage() {
               >
                 {m.body}
                 <span className={`ml-2 align-bottom text-[9px] ${mine ? "text-ink/60" : "text-muted"}`}>
-                  {fmtClock(m.created_at)}
+                  {fmtDateTime(m.created_at)}
                 </span>
               </div>
             </div>
@@ -231,33 +360,31 @@ export default function ChatPage() {
           {result.upi?.vpa && result.upi.amount > 0 && <UpiLinkInline vpa={result.upi.vpa} amount={result.upi.amount} requestId={requestId} />}
         </div>
       )}
-      {canVerify && (
-        <div className="mb-2 rounded-2xl border border-violet/40 bg-violet/10 p-4">
-          <p className="text-center text-xs font-semibold text-violet">
-            Ask {room.role === "helper" ? "the requester" : ""} for their 4-digit PIN when you meet
-          </p>
-          <div className="mt-3">
+      {canVerify && openSection === "pin" && (
+        <div className="mb-2 rounded-xl border border-violet/40 bg-violet/10 p-3">
+          <p className="text-center text-[11px] font-semibold text-violet">Ask for the 4-digit PIN when you meet</p>
+          <div className="mt-2">
             <PinInput value={pin} onChange={setPin} />
           </div>
           {verifyErr && <p className="mt-2 text-center text-xs text-danger">{verifyErr}</p>}
           <button
             onClick={verify} disabled={verifyBusy || pin.length !== 4}
-            className="mt-3 w-full rounded-xl bg-violet py-3 text-sm font-black text-white transition active:scale-95 disabled:opacity-40"
+            className="mt-2 w-full rounded-lg bg-violet py-2.5 text-sm font-black text-white transition active:scale-95 disabled:opacity-40"
           >
             {verifyBusy ? "Verifying…" : "Verify & complete (+10 base pts)"}
           </button>
         </div>
       )}
       {/* requester PIN reveal */}
-      {room.role === "requester" && room.status === "accepted" && (
-        <div className="mb-2 rounded-2xl border border-violet/40 bg-violet/10 p-4 text-center">
-          <p className="text-xs font-semibold text-violet">Your handshake PIN — show it to the helper when you meet</p>
+      {room.role === "requester" && room.status === "accepted" && openSection === "pin" && (
+        <div className="mb-2 rounded-xl border border-violet/40 bg-violet/10 p-3 text-center">
+          <p className="text-[11px] font-semibold text-violet">Show this PIN when you meet</p>
           {!pinVisible ? (
-            <button onClick={revealPin} className="mt-2 rounded-xl bg-violet px-5 py-2.5 text-sm font-black text-white active:scale-95">
+            <button onClick={revealPin} className="mt-2 rounded-lg bg-violet px-4 py-2 text-sm font-black text-white active:scale-95">
               Reveal PIN
             </button>
           ) : (
-            <p className="mt-1 text-4xl font-black tracking-[0.5em] text-violet">{pin}</p>
+            <p className="mt-1 text-3xl font-black tracking-[0.4em] text-violet">{pin}</p>
           )}
         </div>
       )}
@@ -267,12 +394,10 @@ export default function ChatPage() {
         </p>
       )}
 
-      {!room.archived && room.status === "accepted" && (
-        <div className="mb-2 rounded-2xl border border-line bg-panel p-3">
-          <p className="text-xs font-semibold text-muted">
-            Negotiate here: money is optional; item or portion requests can be sent as messages.
-          </p>
-          <div className="mt-2 flex gap-2">
+      {!room.archived && room.status === "accepted" && openSection === "money" && (
+        <div className="mb-2 rounded-xl border border-line bg-panel p-2.5">
+          <p className="text-[11px] font-semibold text-muted">Optional cash reward</p>
+          <div className="mt-1.5 flex gap-2">
             <div className="flex flex-1 items-center rounded-xl border border-line bg-panel2 px-3">
               <span className="text-sm font-bold text-mint">₹</span>
               <input
@@ -281,14 +406,14 @@ export default function ChatPage() {
                 inputMode="decimal"
                 placeholder={room.tip_amount > 0 ? `Agreed: ₹${Number(room.tip_amount).toFixed(0)}` : "Cash amount (optional)"}
                 aria-label="Negotiated cash reward"
-                className="w-full bg-transparent py-2.5 pl-1.5 text-sm focus:outline-none"
+                className="w-full bg-transparent py-2 pl-1.5 text-sm focus:outline-none"
               />
             </div>
             <button
               type="button"
               onClick={saveReward}
               disabled={rewardBusy || !rewardAmount}
-              className="rounded-xl border border-mint/40 px-3 text-xs font-bold text-mint disabled:opacity-40"
+              className="rounded-lg border border-mint/40 px-3 text-xs font-bold text-mint disabled:opacity-40"
             >
               {rewardBusy ? "Saving…" : "Set cash"}
             </button>
@@ -298,39 +423,99 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/* quick replies + composer */}
+      {chatOpenedMessage && (
+        <p className="mb-2 rounded-xl bg-white/5 px-3 py-1.5 text-center text-[11px] leading-relaxed text-muted">
+          {chatOpenedMessage.body}
+        </p>
+      )}
+
+      {/* composer */}
       {!room.archived && room.status !== "expired" && room.status !== "cancelled" && (
-        <div className="safe-bottom pb-2">
-          <div className="scroll-thin mb-2 flex gap-2 overflow-x-auto pb-1">
-            {QUICK_REPLIES.map((q) => (
-              <button
-                key={q}
-                onClick={() => send(q, "quick")}
-                className="shrink-0 rounded-full border border-violet/40 bg-violet/10 px-3.5 py-1.5 text-xs font-semibold text-violet active:scale-95"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
+        <div className="safe-bottom shrink-0 border-t border-line bg-ink py-2">
+          {emojiOpen && (
+            <div className="mb-2 grid grid-cols-8 gap-1 rounded-xl border border-line bg-panel p-2">
+              {["😀", "😂", "❤️", "👍", "🙏", "🙂", "😅", "🎉", "📍", "🚗", "✅", "🤝", "😄", "😎", "🙌", "💯"].map((emoji) => (
+                <button
+                  type="button"
+                  key={emoji}
+                  onClick={() => {
+                    setDraft((current) => current + emoji);
+                    setEmojiOpen(false);
+                  }}
+                  className="rounded-lg py-1 text-lg transition hover:bg-panel2 active:scale-90"
+                  aria-label={`Add ${emoji}`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+          {composerError && <p className="mb-1 text-center text-[11px] text-danger">{composerError}</p>}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               send(draft);
             }}
-            className="flex gap-2"
+            className="flex items-center gap-2 rounded-full bg-panel px-2 py-1"
           >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,.pdf,.txt"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void uploadFile(file);
+                event.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition active:scale-90"
+              aria-label="Attach photo or file"
+              title="Attach photo or file"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="m20.5 11.5-8.8 8.8a5 5 0 0 1-7.1-7.1l9.2-9.2a3.5 3.5 0 0 1 5 5l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.4-8.4" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => setEmojiOpen((open) => !open)}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition active:scale-90"
+              aria-label="Open emoji picker"
+              title="Emoji"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <circle cx="12" cy="12" r="8.5" />
+                <circle cx="9" cy="10" r="0.8" fill="currentColor" stroke="none" />
+                <circle cx="15" cy="10" r="0.8" fill="currentColor" stroke="none" />
+                <path d="M8.5 14c.9 1.4 2.1 2 3.5 2s2.6-.6 3.5-2" />
+              </svg>
+            </button>
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="Message…"
-              className="flex-1 rounded-xl border border-line bg-panel px-4 py-3 text-sm placeholder:text-muted/60 focus:border-neon focus:outline-none"
+              placeholder={recording ? "Recording voice…" : "Type a message"}
+              className="min-w-0 flex-1 bg-transparent px-1 py-2.5 text-sm placeholder:text-muted/60 focus:outline-none"
             />
             <button
-              type="submit" disabled={!draft.trim()}
-              className="rounded-xl bg-neon px-5 text-sm font-black text-ink transition active:scale-95 disabled:opacity-40"
-              aria-label="Send"
+              type={draft.trim() ? "submit" : "button"}
+              onClick={draft.trim() ? undefined : toggleRecording}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition active:scale-90 ${recording ? "bg-danger text-white" : "bg-neon text-ink"}`}
+              aria-label={draft.trim() ? "Send" : recording ? "Stop recording" : "Record voice message"}
             >
-              Send
+              {draft.trim() ? (
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+                  <path d="m3 20 18-8L3 4v6l12 2-12 2v6Z" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <rect x="9" y="3" width="6" height="12" rx="3" />
+                  <path d="M5 11a7 7 0 0 0 14 0M12 18v3m-3 0h6" />
+                </svg>
+              )}
             </button>
           </form>
         </div>

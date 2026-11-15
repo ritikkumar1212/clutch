@@ -3,7 +3,11 @@ from __future__ import annotations
 
 from app.models import enum_val
 
-from fastapi import APIRouter, Depends, HTTPException
+import json
+from pathlib import Path
+from uuid import uuid4
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -12,8 +16,12 @@ from app.models import HelpRequest, User
 from app.schemas import ChatOut, MessageOut, PublicUserOut, RewardIn
 from app.services.chat import history, lock_deadline, post_message
 from app.services.requests import is_participant
+from app.config import settings
 
 router = APIRouter(prefix="/chat", tags=["chat"])
+MAX_UPLOAD_BYTES = 15 * 1024 * 1024
+ALLOWED_UPLOAD_PREFIXES = ("image/", "application/pdf", "text/plain")
+ALLOWED_AUDIO_TYPES = ("audio/",)
 
 
 async def _participant_request(db: AsyncSession, request_id: str, user_id: str) -> HelpRequest:
@@ -58,6 +66,40 @@ async def send_message(request_id: str, payload: dict,
     req = await _participant_request(db, request_id, user.id)
     msg = await post_message(db, req, user, str(payload.get("body", "")),
                              str(payload.get("kind", "text")))
+    return MessageOut.model_validate(msg)
+
+
+async def _save_upload(request_id: str, user_id: str, upload: UploadFile,
+                       allowed_prefixes: tuple[str, ...]) -> tuple[str, str]:
+    content_type = upload.content_type or "application/octet-stream"
+    if not content_type.startswith(allowed_prefixes):
+        raise HTTPException(415, "This file type is not supported")
+    data = await upload.read(MAX_UPLOAD_BYTES + 1)
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, "File must be 15 MB or smaller")
+    folder = Path(settings.UPLOAD_DIR) / request_id
+    folder.mkdir(parents=True, exist_ok=True)
+    suffix = Path(upload.filename or "").suffix[:10]
+    filename = f"{user_id}_{uuid4().hex}{suffix}"
+    (folder / filename).write_bytes(data)
+    return f"{settings.PUBLIC_API_URL}/uploads/{request_id}/{filename}", content_type
+
+
+@router.post("/{request_id}/uploads", response_model=MessageOut)
+async def upload_message(request_id: str,
+                         file: UploadFile = File(...),
+                         user: User = Depends(get_complete_user),
+                         db: AsyncSession = Depends(get_db)) -> MessageOut:
+    req = await _participant_request(db, request_id, user.id)
+    is_audio = (file.content_type or "").startswith("audio/")
+    allowed = ALLOWED_AUDIO_TYPES if is_audio else ALLOWED_UPLOAD_PREFIXES
+    url, content_type = await _save_upload(request_id, user.id, file, allowed)
+    payload = json.dumps({
+        "url": url,
+        "name": file.filename or "attachment",
+        "mime": content_type,
+    })
+    msg = await post_message(db, req, user, payload, "audio" if is_audio else "attachment")
     return MessageOut.model_validate(msg)
 
 

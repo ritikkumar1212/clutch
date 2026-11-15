@@ -50,7 +50,7 @@ export default function PwaSetup() {
         onClick={onEnablePush}
         disabled={pushState === "on"}
         className={`w-full rounded-xl px-4 py-3 text-sm font-bold transition active:scale-95 ${
-          pushState === "on" ? "bg-mint/15 text-mint" : "bg-white/10 text-slate-100"
+          pushState === "on"           ? "bg-mint/15 text-mint" : "bg-white/10 text-ink"
         }`}
       >
         {pushState === "on"

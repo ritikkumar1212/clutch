@@ -27,6 +27,33 @@
         "cwd": "${workspaceFolder}/campusradar"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "CampusRadar: Frontend Dev (hot reload)",
+      "type": "shell",
+      "command": "npm.cmd exec -- next dev -p 3001",
+      "options": {
+        "cwd": "${workspaceFolder}/campusradar/frontend"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "CampusRadar: Open Dev Site",
+      "type": "shell",
+      "command": "Start-Process 'http://localhost:3001'",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "never",
+        "close": true
+      },
+      "problemMatcher": []
     }
   ]
 }

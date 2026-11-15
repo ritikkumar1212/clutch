@@ -35,6 +35,7 @@ export default function RequestsPage() {
   const [loading, setLoading] = useState(true);
   const [pins, setPins] = useState<Record<string, string>>({});
   const [showPin, setShowPin] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -75,6 +76,13 @@ export default function RequestsPage() {
           created: m.created.map((r) => (r.id === p.request_id ? { ...r, status: "expired" as const } : r)),
         }))
       ),
+      ws.on("request_cancelled", (p: WsEvents["request_cancelled"]) =>
+        setMine((m) => ({
+          ...m,
+          created: m.created.map((r) => (r.id === p.request_id ? { ...r, status: "cancelled" as const } : r)),
+          helping: m.helping.map((r) => (r.id === p.request_id ? { ...r, status: "cancelled" as const } : r)),
+        }))
+      ),
     ];
     return () => {
       clearInterval(t);
@@ -103,11 +111,18 @@ export default function RequestsPage() {
     }
   }
 
+  const activeCreated = mine.created.filter((r) => r.status === "open" || r.status === "accepted");
+  const activeHelping = mine.helping.filter((r) => r.status === "accepted");
+  const historyCreated = mine.created.filter((r) => r.status === "completed" || r.status === "cancelled" || r.status === "expired");
+  const historyHelping = mine.helping.filter((r) => r.status === "completed" || r.status === "cancelled" || r.status === "expired");
+  const historyCount = historyCreated.length + historyHelping.length;
+
   const row = (r: Card, kind: "created" | "helping") => {
+    const historyItem = r.status === "completed" || r.status === "cancelled" || r.status === "expired";
     return (
       <article key={r.id} className="slide-up rounded-2xl border border-line bg-panel p-4">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex-1 truncate text-[13px] font-bold">Help request</div>
+          <div className="flex-1 truncate text-[13px] font-bold">{kind === "created" ? "You asked for help" : "You helped someone"}</div>
           {statusChip(r.status)}
         </div>
         <p className="mt-2 text-[13px] text-slate-300">{r.description}</p>
@@ -120,7 +135,7 @@ export default function RequestsPage() {
         )}
 
         {/* handshake PIN — rule 5 */}
-        {kind === "created" && (r.status === "accepted" || r.status === "completed") && (
+        {kind === "created" && r.status === "accepted" && (
           <div className="mt-3 rounded-xl border border-violet/40 bg-violet/10 p-3">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-violet">Handshake PIN (share when you meet)</p>
@@ -148,7 +163,7 @@ export default function RequestsPage() {
               href={`/chat/${r.id}`}
               className="flex-1 rounded-xl bg-neon px-3 py-2.5 text-center text-sm font-bold text-ink transition active:scale-95"
             >
-              Open chat
+              {historyItem ? "View chat" : "Open chat"}
             </Link>
           )}
           {kind === "created" && r.status === "open" && (
@@ -180,28 +195,41 @@ export default function RequestsPage() {
       ) : (
         <div className="space-y-5 pb-4">
           <section>
-            <h2 className="mb-2 text-xs font-black uppercase tracking-wider text-muted">
-              Requests you posted ({mine.created.length})
-            </h2>
-            {mine.created.length === 0 ? (
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-xs font-black uppercase tracking-wider text-muted">Active tasks</h2>
+              <span className="text-[11px] text-muted">{activeCreated.length + activeHelping.length}</span>
+            </div>
+            {activeCreated.length === 0 && activeHelping.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
-                Nothing posted yet — drop a pin on the Radar.
+                No active tasks right now.
               </p>
             ) : (
-              <div className="space-y-3">{mine.created.map((r) => row(r, "created"))}</div>
+              <div className="space-y-3">
+                {activeCreated.map((r) => row(r, "created"))}
+                {activeHelping.map((r) => row(r, "helping"))}
+              </div>
             )}
           </section>
 
-          <section>
-            <h2 className="mb-2 text-xs font-black uppercase tracking-wider text-muted">
-              Requests you&apos;re helping ({mine.helping.length})
-            </h2>
-            {mine.helping.length === 0 ? (
-              <p className="rounded-2xl border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
-                No accepted tasks — check the feed.
-              </p>
-            ) : (
-              <div className="space-y-3">{mine.helping.map((r) => row(r, "helping"))}</div>
+          <section className="border-t border-line pt-4">
+            <button
+              type="button"
+              onClick={() => setShowHistory((open) => !open)}
+              className="flex w-full items-center justify-between text-left"
+            >
+              <h2 className="text-xs font-black uppercase tracking-wider text-muted">History ({historyCount})</h2>
+              <span className="text-xs text-muted">{showHistory ? "hide" : "show"}</span>
+            </button>
+            {showHistory && (
+              <div className="mt-2 space-y-3">
+                {historyCreated.map((r) => row(r, "created"))}
+                {historyHelping.map((r) => row(r, "helping"))}
+                {historyCount === 0 && (
+                  <p className="rounded-2xl border border-dashed border-line px-4 py-5 text-center text-sm text-muted">
+                    Completed tasks will appear here.
+                  </p>
+                )}
+              </div>
             )}
           </section>
         </div>

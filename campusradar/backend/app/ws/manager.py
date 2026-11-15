@@ -254,3 +254,24 @@ async def handle_client_event(conn: Connection, raw: str, db_factory) -> None:
             "type": "chat_typing", "request_id": request_id, "handle": event.get("handle", ""),
         }))
         return
+
+    if etype == "call_signal":
+        request_id = str(event.get("request_id", ""))
+        signal = event.get("signal")
+        if signal not in ("offer", "answer", "ice", "hangup"):
+            return
+        async with db_factory() as db:
+            from app.models import HelpRequest
+            req = await db.get(HelpRequest, request_id)
+            if not req or not is_participant(req, user_id):
+                return
+            if req.status not in (RequestStatus.accepted, RequestStatus.completed):
+                return
+        await rds.publish(chat_room(request_id), json.dumps({
+            "type": "call_signal",
+            "request_id": request_id,
+            "sender_id": user_id,
+            "signal": signal,
+            "data": event.get("data"),
+        }))
+        return

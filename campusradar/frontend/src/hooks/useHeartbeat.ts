@@ -1,7 +1,7 @@
 "use client";
 
-/* Sends GPS to the server every ~25s (Redis-side lease 90s) — coordinates
-   NEVER come back out to any client (privacy rule 1). */
+/* Sends GPS to the server every ~25s (Redis-side lease 90s). Coordinates are
+   returned only to the two participants after a request is accepted. */
 import { useEffect, useRef } from "react";
 import { api } from "@/lib/api";
 import { ws } from "@/lib/ws";
@@ -33,6 +33,7 @@ export function useHeartbeat(active: boolean) {
       watchId.current = navigator.geolocation.watchPosition(
         (p) => {
           posRef.current = { lat: p.coords.latitude, lng: p.coords.longitude };
+          void send();
         },
         () => {
           /* permission denied: user can still browse, matching just won't include them */

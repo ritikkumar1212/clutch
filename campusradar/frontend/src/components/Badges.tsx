@@ -6,12 +6,12 @@ export function GenderBadge({ gender, verified }: { gender: string; verified: bo
   const isM = gender === "male";
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide backdrop-blur-md ${
         isF
-          ? "bg-pink-500/15 text-pink-300"
+          ? "border-pink-300/20 bg-pink-300/10 text-pink-200"
           : isM
-            ? "bg-sky-500/15 text-sky-300"
-            : "bg-white/10 text-slate-300"
+            ? "border-sky-300/20 bg-sky-300/10 text-sky-200"
+            : "border-white/15 bg-white/10 text-slate-200"
       }`}
       title={verified ? "Verified gender badge" : "Unverified"}
     >

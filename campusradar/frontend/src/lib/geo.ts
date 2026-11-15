@@ -31,3 +31,13 @@ export function fmtTimeLeft(expiresAt: string | null | undefined): string {
 export function fmtClock(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
+
+export function fmtDateTime(iso: string): string {
+  return new Date(iso).toLocaleString([], {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
