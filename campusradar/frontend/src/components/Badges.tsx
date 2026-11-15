@@ -28,10 +28,23 @@ export function GenderBadge({ gender, verified }: { gender: string; verified: bo
 export function PointsPill({ points }: { points: number }) {
   return (
     <span className="inline-flex items-center gap-1 rounded-full bg-mint/15 px-2 py-0.5 text-xs font-bold text-mint">
-      <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M13 3L6 13h5l-1 8 8-11h-5l0-7z" />
-      </svg>
-      {points} pts
+      <FireIcon className="h-3 w-3" />
+      {points} score
     </span>
+  );
+}
+
+export function FireIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path
+        fill="#ff704d"
+        d="M13.2 1.5c.2 4.2 1.2 6.5 3.2 8.4 1.9 1.8 2.8 3.6 2.8 5.7 0 3.8-2.9 6.7-7.2 7.4-4.3-.7-7.2-3.6-7.2-7.4 0-3.1 1.8-5.8 4.8-8.7-.1 2.2.4 3.7 1.5 4.8 1-2.8 1.6-5.8 2.1-10.2Z"
+      />
+      <path
+        fill="#ffc238"
+        d="M9.1 11.5c.2 2 1 3.2 2.2 4.2.8.8 1.2 1.7 1.2 2.7 0 1.4-.4 2.5-1.1 3.5-2.4-.8-3.7-2.4-3.7-4.4 0-1.8.5-3.5 1.4-6Z"
+      />
+    </svg>
   );
 }

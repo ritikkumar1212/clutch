@@ -77,6 +77,9 @@ class OnboardingIn(BaseModel):
     gender: Literal["male", "female", "other"]
     upi_vpa: str | None = Field(default=None, max_length=64, pattern=r"^[a-zA-Z0-9.\-_]{2,64}@[a-zA-Z]{2,64}$")
 
+class AvatarVisibilityIn(BaseModel):
+    avatar_visibility: Literal["private", "accepted_only", "public"]
+
 
 class UserOut(BaseModel):
     id: str
@@ -87,6 +90,8 @@ class UserOut(BaseModel):
     upi_vpa: str | None
     help_points: int
     profile_complete: bool
+    avatar_url: str | None
+    avatar_visibility: str
 
     model_config = {"from_attributes": True}
 

@@ -10,6 +10,8 @@ export interface User {
   upi_vpa: string | null;
   help_points: number;
   profile_complete: boolean;
+  avatar_url: string | null;
+  avatar_visibility: "private" | "accepted_only" | "public";
 }
 
 export interface PublicUser {

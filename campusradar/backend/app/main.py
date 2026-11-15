@@ -43,6 +43,8 @@ async def _ensure_phone_schema() -> None:
           expires_at TIMESTAMPTZ NOT NULL
         )""",
         "CREATE INDEX IF NOT EXISTS idx_otps_phone ON phone_otps (phone, created_at DESC)",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_visibility TEXT NOT NULL DEFAULT 'private'",
     ]
     async with engine.begin() as conn:
         for stmt in stmts:
