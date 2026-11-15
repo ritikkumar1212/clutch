@@ -1,0 +1,32 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "CampusRadar: Start Docker",
+      "type": "shell",
+      "command": "docker compose --env-file frontend/.env.local up --build",
+      "options": {
+        "cwd": "${workspaceFolder}/campusradar"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "CampusRadar: Stop Docker",
+      "type": "shell",
+      "command": "docker compose --env-file frontend/.env.local down",
+      "options": {
+        "cwd": "${workspaceFolder}/campusradar"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

@@ -85,15 +85,15 @@ Next.js App Router app in `frontend/src/`: Campus Radar with pin/radius selector
 
 ```bash
 cd campusradar
-docker compose up --build
-```
-
-If using the LocationIQ-powered map, load the local frontend environment file
-when starting Compose so the key is available during the Next.js build:
-
-```powershell
 docker compose --env-file frontend/.env.local up --build
 ```
+
+The map key is a Next.js build-time public variable. Compose does not
+automatically read `frontend/.env.local` when it interpolates build arguments,
+so omitting `--env-file frontend/.env.local` builds the frontend without the
+key and the Radar screen displays `LocationIQ API key is not configured`.
+Never commit the local env file or replace the placeholder in
+`frontend/.env.example` with a real token.
 
 - PWA → **http://localhost:3000** (Chrome/Android: *Install app*; iOS 16.4+: *Add to Home Screen* from Safari share sheet)
 - API docs → http://localhost:8000/docs
