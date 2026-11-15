@@ -84,6 +84,8 @@ class User(Base):
     upi_vpa: Mapped[str | None] = mapped_column(Text)
     help_points: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     profile_complete: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    avatar_url: Mapped[str | None] = mapped_column(Text)
+    avatar_visibility: Mapped[str] = mapped_column(Text, default="private", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 

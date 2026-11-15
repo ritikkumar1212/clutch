@@ -30,8 +30,9 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ---------------------------------------------------------------- users -----
--- Identity = anonymous handle (@swift_panda). Real names/photos are never
--- collected. Gender is captured at onboarding and surfaced only as a
+-- Identity = anonymous handle (@swift_panda). Profile photos are optional and
+-- controlled by the user with private, accepted-only, or public visibility.
+-- Gender is captured at onboarding and surfaced only as a
 -- verified M/F badge (rule 3 & 5 of the privacy model).
 CREATE TABLE IF NOT EXISTS users (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -44,6 +45,8 @@ CREATE TABLE IF NOT EXISTS users (
   upi_vpa         TEXT,                              -- optional; used ONLY to build upi:// deep links post-completion
   help_points     INTEGER NOT NULL DEFAULT 0,
   profile_complete BOOLEAN NOT NULL DEFAULT FALSE,   -- gender onboarded?
+  avatar_url      TEXT,
+  avatar_visibility TEXT NOT NULL DEFAULT 'private',
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_seen_at    TIMESTAMPTZ
 );

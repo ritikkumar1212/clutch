@@ -1,24 +1,71 @@
 """Users: profile, onboarding (gender badge), leaderboard, ledger, push subs."""
 from __future__ import annotations
 
+import uuid
+from pathlib import Path
+
+from app.config import settings
 from app.models import enum_val
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import Gender, PushSubscription, User, enum_val
-from app.schemas import (LeaderboardRow, LedgerRow, OnboardingIn, UserOut)
+from app.schemas import (AvatarVisibilityIn, LeaderboardRow, LedgerRow, OnboardingIn, UserOut)
 from app.services.geo import cache_user_meta
 from app.services.rewards import leaderboard, user_ledger
 
 router = APIRouter(prefix="/users", tags=["users"])
 
+MAX_AVATAR_BYTES = 5 * 1024 * 1024
+AVATAR_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
+
 
 @router.get("/me", response_model=UserOut)
 async def me(user: User = Depends(get_current_user)) -> UserOut:
+    return UserOut.model_validate(user)
+
+
+@router.post("/me/avatar", response_model=UserOut)
+async def upload_avatar(file: UploadFile = File(...),
+                        user: User = Depends(get_current_user),
+                        db: AsyncSession = Depends(get_db)) -> UserOut:
+    extension = AVATAR_TYPES.get(file.content_type or "")
+    if not extension:
+        raise HTTPException(status_code=415, detail="Use a JPG, PNG, or WebP image")
+    content = await file.read(MAX_AVATAR_BYTES + 1)
+    if len(content) > MAX_AVATAR_BYTES:
+        raise HTTPException(status_code=413, detail="Profile photo must be 5 MB or smaller")
+
+    avatar_dir = Path(settings.UPLOAD_DIR) / "avatars"
+    avatar_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"{user.id}-{uuid.uuid4().hex}{extension}"
+    (avatar_dir / filename).write_bytes(content)
+    user.avatar_url = f"{settings.PUBLIC_API_URL}/uploads/avatars/{filename}"
+    await db.commit()
+    await db.refresh(user)
+    return UserOut.model_validate(user)
+
+
+@router.delete("/me/avatar", response_model=UserOut)
+async def reset_avatar(user: User = Depends(get_current_user),
+                       db: AsyncSession = Depends(get_db)) -> UserOut:
+    user.avatar_url = None
+    await db.commit()
+    await db.refresh(user)
+    return UserOut.model_validate(user)
+
+
+@router.patch("/me/avatar-visibility", response_model=UserOut)
+async def update_avatar_visibility(payload: AvatarVisibilityIn,
+                                   user: User = Depends(get_current_user),
+                                   db: AsyncSession = Depends(get_db)) -> UserOut:
+    user.avatar_visibility = payload.avatar_visibility
+    await db.commit()
+    await db.refresh(user)
     return UserOut.model_validate(user)
 
 
