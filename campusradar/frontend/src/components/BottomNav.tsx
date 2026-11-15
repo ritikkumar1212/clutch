@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { ws } from "@/lib/ws";
+import type { WsEvents } from "@/lib/types";
 
 const TABS = [
   { href: "/radar", label: "Radar", icon: "radar" },
@@ -54,6 +57,26 @@ function Icon({ name, active }: { name: string; active: boolean }) {
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const [unreadFeed, setUnreadFeed] = useState(0);
+
+  useEffect(() => {
+    const stored = Number(localStorage.getItem("cr_feed_unread") || 0);
+    setUnreadFeed(Number.isFinite(stored) ? stored : 0);
+    if (pathname === "/feed") {
+      localStorage.setItem("cr_feed_unread", "0");
+      setUnreadFeed(0);
+    }
+    const offNew = ws.on("new_request", (_event: WsEvents["new_request"]) => {
+      if (window.location.pathname === "/feed") return;
+      setUnreadFeed((current) => {
+        const next = current + 1;
+        localStorage.setItem("cr_feed_unread", String(next));
+        return next;
+      });
+    });
+    return offNew;
+  }, [pathname]);
+
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md border-t border-line bg-panel/95 backdrop-blur"
@@ -67,12 +90,25 @@ export default function BottomNav() {
             <Link
               key={t.href}
               href={t.href}
+              onClick={() => {
+                if (t.href === "/feed") {
+                  localStorage.setItem("cr_feed_unread", "0");
+                  setUnreadFeed(0);
+                }
+              }}
               className={`flex flex-col items-center gap-0.5 py-1.5 text-[10px] font-semibold ${
                 active ? "text-neon" : "text-muted"
               }`}
               aria-current={active ? "page" : undefined}
             >
-              <Icon name={t.icon} active={active} />
+              <span className="relative">
+                <Icon name={t.icon} active={active} />
+                {t.href === "/feed" && unreadFeed > 0 && (
+                  <span className="absolute -right-2 -top-2 grid h-4 min-w-4 place-items-center rounded-full bg-neon px-1 text-[9px] font-black text-ink">
+                    {unreadFeed > 9 ? "9+" : unreadFeed}
+                  </span>
+                )}
+              </span>
               {t.label}
             </Link>
           );

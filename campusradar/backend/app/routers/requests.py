@@ -13,9 +13,11 @@ from app.database import get_db
 from app.deps import get_complete_user
 from app.models import HelpRequest, RequestStatus, User, utcnow
 from app.redis_client import rds
-from app.schemas import (AcceptOut, PublicUserOut,
+from app.schemas import (AcceptOut, LocationPointOut, PublicUserOut,
                          RequestCreateIn, RequestDetailOut, RequestOut, VerifyPinIn, VerifyPinOut)
+from app.schemas import SharedLocationsOut
 from app.services import matching
+from app.services import geo
 from app.services.geo import notify_user
 from app.services.requests import (accept as accept_svc, after_accept,
                                    cancel as cancel_svc, is_participant)
@@ -42,6 +44,8 @@ async def _load_requester(db: AsyncSession, requester_id: str) -> User:
 async def create_request(payload: RequestCreateIn,
                          user: User = Depends(get_complete_user),
                          db: AsyncSession = Depends(get_db)) -> RequestDetailOut:
+    if payload.gender_filter == "female_only" and enum_val(user.gender) != "female":
+        raise HTTPException(403, "Female-only helper requests are available to female profiles")
     req = HelpRequest(
         requester_id=user.id,
         category="general",  # legacy database column; never exposed in the API
@@ -149,6 +153,25 @@ async def register_view(request_id: str,
     """REST fallback for the WS `view_request` event (same viewer set)."""
     count = await matching.register_viewer(request_id, user.id)
     return {"viewers": count}
+
+
+@router.get("/{request_id}/locations", response_model=SharedLocationsOut)
+async def shared_locations(request_id: str,
+                           user: User = Depends(get_complete_user),
+                           db: AsyncSession = Depends(get_db)) -> SharedLocationsOut:
+    """Return live coordinates only to the two participants after acceptance."""
+    req = await db.get(HelpRequest, request_id)
+    if not req or req.status not in (RequestStatus.accepted, RequestStatus.completed):
+        raise HTTPException(404, "Live locations are available after acceptance")
+    if not is_participant(req, user.id):
+        raise HTTPException(403, "Only request participants can view live locations")
+
+    requester_pos = await geo.current_position(req.requester_id)
+    helper_pos = await geo.current_position(req.helper_id) if req.helper_id else None
+    return SharedLocationsOut(
+        requester=LocationPointOut(lat=requester_pos[0], lng=requester_pos[1]) if requester_pos else None,
+        helper=LocationPointOut(lat=helper_pos[0], lng=helper_pos[1]) if helper_pos else None,
+    )
 
 
 # --------------------------------------------------------- pin (requester) ---

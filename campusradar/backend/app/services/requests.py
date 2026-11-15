@@ -5,9 +5,10 @@ from __future__ import annotations
 from app.models import enum_val
 
 import logging
+from datetime import timedelta
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -157,6 +158,41 @@ async def cancel(db: AsyncSession, req: HelpRequest, user: User) -> None:
     await matching.clear_viewers(req.id)
     await publish(request_room(req.id), {"type": "request_cancelled", "request_id": req.id})
     await geo.notify_user(req.requester_id, {"type": "request_cancelled", "request_id": req.id})
+
+
+async def cancel_stale_active_requests(db: AsyncSession, limit: int = 200) -> list[str]:
+    """Cancel open or accepted tasks that have remained active for two hours."""
+    cutoff = utcnow() - timedelta(hours=settings.ACTIVE_REQUEST_MAX_AGE_HOURS)
+    stale = (await db.execute(
+        select(HelpRequest)
+        .where(
+            or_(
+                (HelpRequest.status == RequestStatus.open) & (HelpRequest.created_at <= cutoff),
+                (HelpRequest.status == RequestStatus.accepted) & (HelpRequest.accepted_at <= cutoff),
+            ),
+        )
+        .limit(limit)
+        .with_for_update(skip_locked=True)
+    )).scalars().all()
+
+    if not stale:
+        return []
+
+    participants: list[tuple[str, str, str | None]] = []
+    for req in stale:
+        req.status = RequestStatus.cancelled
+        participants.append((req.id, req.requester_id, req.helper_id))
+    await db.commit()
+
+    for request_id, requester_id, helper_id in participants:
+        event = {"type": "request_cancelled", "request_id": request_id}
+        await matching.remove_from_feeds(request_id, event_type="feed_removed")
+        await matching.clear_viewers(request_id)
+        await publish(request_room(request_id), event)
+        await geo.notify_user(requester_id, event)
+        if helper_id:
+            await geo.notify_user(helper_id, event)
+    return [request_id for request_id, _, _ in participants]
 
 
 # ------------------------------------------------------------------ expire ---

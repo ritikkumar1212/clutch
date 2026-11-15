@@ -29,11 +29,11 @@ interface RouteResult {
 
 const PIN_SVG = `
 <div class="cr-pin">
-  <svg width="30" height="38" viewBox="0 0 30 38" xmlns="http://www.w3.org/2000/svg">
-    <path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 12.6 21 13.2 21.6a2.5 2.5 0 003.6 0C17.4 36 30 25.5 30 15 30 6.7 23.3 0 15 0z"
-      fill="#22d3ee" stroke="#0b1020" stroke-width="1.5"/>
-    <circle cx="15" cy="14.5" r="6" fill="#0b1020"/>
-    <circle cx="15" cy="14.5" r="2.6" fill="#22d3ee"/>
+  <svg width="34" height="42" viewBox="0 0 34 42" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17 1C8.16 1 1 8.16 1 17c0 11.2 13.5 22.5 15 23.7a1.54 1.54 0 002 0C19.5 39.5 33 28.2 33 17 33 8.16 25.84 1 17 1z"
+      fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+    <circle cx="17" cy="17" r="6.5" fill="#ffffff"/>
+    <circle cx="17" cy="17" r="3" fill="#2563eb"/>
   </svg>
 </div>`;
 
@@ -52,9 +52,20 @@ export default function MapPicker({ lat, lng, onPinChange, compact }: Props) {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [routing, setRouting] = useState(false);
   const [routeInfo, setRouteInfo] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const searchRequestRef = useRef(0);
   const onChangeRef = useRef(onPinChange);
   onChangeRef.current = onPinChange;
+
+  function locationErrorMessage(error: GeolocationPositionError) {
+    if (error.code === error.PERMISSION_DENIED) {
+      return "Allow location access in your browser settings";
+    }
+    if (error.code === error.TIMEOUT) {
+      return "Location lookup timed out — try again";
+    }
+    return "Could not detect your location — check device location services";
+  }
 
   const reverseGeocode = useCallback(async (la: number, ln: number): Promise<string | null> => {
     const apiKey = process.env.NEXT_PUBLIC_LOCATIONIQ_API_KEY;
@@ -82,6 +93,7 @@ export default function MapPicker({ lat, lng, onPinChange, compact }: Props) {
   }, []);
 
   useEffect(() => {
+    if (!expanded) return;
     let cancelled = false;
     (async () => {
       const apiKey = process.env.NEXT_PUBLIC_LOCATIONIQ_API_KEY;
@@ -128,13 +140,13 @@ export default function MapPicker({ lat, lng, onPinChange, compact }: Props) {
       routeRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [expanded]);
 
   function placePin(la: number, ln: number, geocode: boolean) {
     const L = LRef.current;
     if (!L) return;
     if (!markerRef.current) {
-      const icon = L.divIcon({ html: PIN_SVG, className: "", iconSize: [30, 38], iconAnchor: [15, 37] });
+      const icon = L.divIcon({ html: PIN_SVG, className: "", iconSize: [34, 42], iconAnchor: [17, 41] });
       markerRef.current = L.marker([la, ln], { icon, draggable: true }).addTo(mapRef.current!);
       markerRef.current.on("dragend", () => {
         const p = markerRef.current!.getLatLng();
@@ -339,11 +351,11 @@ export default function MapPicker({ lat, lng, onPinChange, compact }: Props) {
           setRouting(false);
         }
       },
-      () => {
+      (error) => {
         setRouting(false);
-        setRouteInfo("Location permission is required for directions");
+        setRouteInfo(locationErrorMessage(error));
       },
-      { enableHighAccuracy: true, timeout: 12000 },
+      { enableHighAccuracy: false, maximumAge: 30000, timeout: 20000 },
     );
   }
 
@@ -364,37 +376,82 @@ export default function MapPicker({ lat, lng, onPinChange, compact }: Props) {
         setLocating(false);
         placePin(p.coords.latitude, p.coords.longitude, true);
       },
-      () => setLocating(false),
-      { enableHighAccuracy: true, timeout: 12000 },
+      (error) => {
+        setLocating(false);
+        setGeocodeNote(locationErrorMessage(error));
+      },
+      { enableHighAccuracy: false, maximumAge: 30000, timeout: 20000 },
     );
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-line">
+    <div className={`cr-map-shell relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.12)] ${expanded ? "" : "h-[68px]"}`}>
       <div className="absolute left-2 right-2 top-2 z-[7]">
-        <input
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              void forwardGeocode();
-            }
-          }}
-          placeholder="Search an address or place"
-          aria-label="Search an address or place"
-          className="w-full rounded-xl border border-line bg-panel/95 px-3 py-2.5 text-xs text-white shadow-lg backdrop-blur placeholder:text-muted focus:border-neon focus:outline-none"
-        />
-        {(searching || searchError || suggestions.length > 0) && (
-          <div className="mt-1 overflow-hidden rounded-xl border border-line bg-panel/95 shadow-lg backdrop-blur">
-            {searching && <p className="px-3 py-2 text-xs text-muted">Searching…</p>}
-            {searchError && <p className="px-3 py-2 text-xs text-danger">{searchError}</p>}
+        <div className="relative">
+          <svg
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.35-5.15a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z" />
+          </svg>
+          <input
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            onFocus={() => setExpanded(true)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void forwardGeocode();
+              }
+            }}
+            placeholder="Search Maps"
+            aria-label="Search Maps"
+            className="w-full rounded-full border border-slate-200 bg-white py-3 pl-10 pr-20 text-sm text-slate-700 shadow-[0_5px_16px_rgba(15,23,42,0.12)] transition-shadow placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:shadow-[0_6px_18px_rgba(8,145,178,0.16)]"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              if (!expanded) {
+                setExpanded(true);
+                return;
+              }
+              getDirections();
+            }}
+            disabled={routing}
+            aria-label="Get directions"
+            title="Get directions"
+            className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-cyan-700 transition-colors hover:bg-cyan-50 active:scale-95 disabled:opacity-60"
+          >
+            <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+              <path d="M13.2 3.8 20.2 10.8a1.7 1.7 0 0 1 0 2.4l-7 7a1.7 1.7 0 0 1-2.4 0l-7-7a1.7 1.7 0 0 1 0-2.4l7-7a1.7 1.7 0 0 1 2.4 0Z" fill="currentColor" />
+              <path d="M8.8 12h6.4m0 0-2.4-2.4M15.2 12l-2.4 2.4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              aria-label="Clear search"
+              className="absolute right-11 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+            >
+              <span aria-hidden="true" className="text-base leading-none">×</span>
+            </button>
+          )}
+        </div>
+        {expanded && (searching || searchError || suggestions.length > 0) && (
+          <div className="mt-1 overflow-hidden rounded-xl border border-slate-200 bg-white/95 shadow-lg backdrop-blur">
+            {searching && <p className="px-3 py-2 text-xs text-slate-500">Searching…</p>}
+            {searchError && <p className="px-3 py-2 text-xs text-red-500">{searchError}</p>}
             {suggestions.map((result) => (
               <button
                 key={`${result.lat},${result.lon}`}
                 type="button"
                 onClick={() => selectSearchResult(result)}
-                className="block w-full border-b border-line px-3 py-2 text-left text-xs text-slate-200 last:border-0 hover:bg-neon/10"
+                className="block w-full border-b border-slate-100 px-3 py-2 text-left text-xs text-slate-700 last:border-0 hover:bg-cyan-50"
               >
                 {result.display_name}
               </button>
@@ -402,36 +459,41 @@ export default function MapPicker({ lat, lng, onPinChange, compact }: Props) {
           </div>
         )}
       </div>
-      <div ref={divRef} className={`w-full ${compact ? "h-44" : "h-64"}`} aria-label="Campus map — tap to drop the target pin" role="application" />
-      {mapError && (
-        <div className="absolute inset-0 z-[6] flex items-center justify-center bg-panel px-4 text-center text-xs text-danger">
-          {mapError}
-        </div>
-      )}
-      <button
-        type="button"
-        onClick={locateMe}
-        className="absolute right-2 top-2 z-[6] flex items-center gap-1 rounded-xl border border-line bg-panel/90 px-3 py-2 text-xs font-semibold text-neon shadow-lg backdrop-blur active:scale-95"
-      >
-        {locating ? "Locating…" : "Use my location"}
-      </button>
-      <button
-        type="button"
-        onClick={getDirections}
-        disabled={routing}
-        className="absolute bottom-2 right-2 z-[6] rounded-xl border border-line bg-panel/90 px-3 py-2 text-xs font-semibold text-neon shadow-lg backdrop-blur active:scale-95 disabled:opacity-60"
-      >
-        {routing ? "Finding route…" : "Directions"}
-      </button>
-      {geocodeNote && (
-        <div className="absolute bottom-1 left-1 right-1 z-[6] truncate rounded-lg bg-ink/80 px-2 py-1 text-[11px] text-muted">
-          {geocodeNote}
-        </div>
-      )}
-      {routeInfo && (
-        <div className="absolute bottom-10 left-2 z-[6] rounded-lg bg-ink/85 px-2 py-1 text-[11px] text-muted">
-          {routeInfo}
-        </div>
+      {expanded && (
+        <>
+          <div
+            ref={divRef}
+            className={`w-full ${compact ? "h-48" : "h-56"}`}
+            aria-label="Campus map — tap to drop the target pin"
+            role="application"
+          />
+          {mapError && (
+            <div className="absolute inset-0 z-[6] flex items-center justify-center bg-white/95 px-4 text-center text-xs text-red-500">
+              {mapError}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={locateMe}
+            className="absolute right-2 top-2 z-[6] flex items-center gap-1 rounded-lg border border-slate-200 bg-white/95 px-2.5 py-1.5 text-[11px] font-semibold text-cyan-700 shadow-md backdrop-blur active:scale-95"
+          >
+            {locating ? "Locating…" : "Locate me"}
+          </button>
+          {(routeInfo || geocodeNote) && (
+            <div className="absolute bottom-6 left-2 right-auto z-[6] max-w-[82%] overflow-hidden rounded-lg bg-white/75 shadow-sm backdrop-blur-sm">
+              {geocodeNote && (
+                <div className="truncate border-b border-slate-200/70 px-2.5 py-1.5 text-xs font-semibold text-slate-700">
+                  {geocodeNote}
+                </div>
+              )}
+              {routeInfo && (
+                <div className="truncate px-2.5 py-1 text-[11px] text-slate-500">
+                  {routeInfo}
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

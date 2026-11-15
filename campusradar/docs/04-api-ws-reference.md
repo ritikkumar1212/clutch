@@ -40,6 +40,7 @@ Interactive docs: `http://<host>:8000/docs` (OpenAPI).
 | POST | `/requests/{id}/view` | — | REST fallback for the WS viewer counter |
 | GET | `/requests/{id}/pin` | — | requester only, after accept: `{pin, attempts_left}` |
 | POST | `/requests/{id}/accept` | — | atomic row lock → first helper wins, others get 409; blocks male users on `female_only` (403) |
+| GET | `/requests/{id}/locations` | — | participant-only live coordinates after acceptance; returns requester/helper positions from Redis |
 | POST | `/requests/{id}/verify-pin` | `{pin}` | helper only → completed; awards points; returns `{points_awarded, helper_total_points, upi:{vpa, amount}}` |
 | POST | `/requests/{id}/cancel` | — | requester only, while open |
 | POST | `/requests/late-match` | — | catch-up: active helpers whose heartbeat landed after creation get all open requests added once |

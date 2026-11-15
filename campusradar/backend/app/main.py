@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -74,6 +75,11 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+UPLOAD_DIR = Path(settings.UPLOAD_DIR)
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,

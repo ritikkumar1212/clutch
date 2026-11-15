@@ -133,8 +133,8 @@ class RequestOut(BaseModel):
     id: str
     description: str
     landmark: str | None
-    lat: float
-    lng: float
+    lat: float | None = None
+    lng: float | None = None
     gender_filter: str
     status: str
     expires_at: datetime
@@ -157,6 +157,16 @@ class RequestDetailOut(RequestOut):
 class AcceptOut(BaseModel):
     request: RequestOut
     chat_ready: bool
+
+
+class LocationPointOut(BaseModel):
+    lat: float
+    lng: float
+
+
+class SharedLocationsOut(BaseModel):
+    requester: LocationPointOut | None = None
+    helper: LocationPointOut | None = None
 
 
 class VerifyPinIn(BaseModel):

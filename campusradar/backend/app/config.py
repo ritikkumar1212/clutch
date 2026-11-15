@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     # --- infra -------------------------------------------------------------
     DATABASE_URL: str = "postgresql+asyncpg://campus:campus@localhost:5432/campus"
     REDIS_URL: str = "redis://localhost:6379/0"
+    UPLOAD_DIR: str = "uploads"
+    PUBLIC_API_URL: str = "http://localhost:8000"
 
     # --- auth --------------------------------------------------------------
     JWT_SECRET: str = "dev-only-secret-change-me"
@@ -21,6 +23,7 @@ class Settings(BaseSettings):
 
     # --- product rules -----------------------------------------------------
     REQUEST_TTL_MINUTES: int = 20        # rule 7: unaccepted requests expire
+    ACTIVE_REQUEST_MAX_AGE_HOURS: int = 2  # stale open/accepted tasks move to history
     CHAT_LOCK_MINUTES: int = 30          # rule 5: auto-lock after completion
     CHAT_PURGE_HOURS: int = 24           # ephemeral purge after lock
     HEARTBEAT_TTL_SECONDS: int = 90      # presence lease per heartbeat

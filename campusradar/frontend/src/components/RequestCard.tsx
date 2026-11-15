@@ -19,7 +19,9 @@ interface Props {
 
 export default function RequestCard({ req, variant, busy, onAccept }: Props) {
   const me = useLivePosition();
-  const dist = me ? haversineMeters(me.lat, me.lng, req.lat, req.lng) : null;
+  const dist = me && req.lat != null && req.lng != null
+    ? haversineMeters(me.lat, me.lng, req.lat, req.lng)
+    : null;
   const [left, setLeft] = useState(() => fmtTimeLeft(req.expires_at));
 
   useEffect(() => {

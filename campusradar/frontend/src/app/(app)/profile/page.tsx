@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { api, clearSession, getUser, updateUser } from "@/lib/api";
 import { GenderBadge, PointsPill } from "@/components/Badges";
 import PwaSetup from "@/components/PwaSetup";
+import ThemeToggle from "@/components/ThemeToggle";
 import type { User } from "@/lib/types";
 
 export default function ProfilePage() {
@@ -90,7 +91,10 @@ export default function ProfilePage() {
 
       <h2 className="mb-2 mt-5 text-xs font-black uppercase tracking-wider text-muted">App</h2>
       <div className="rounded-2xl border border-line bg-panel p-4">
-        <PwaSetup />
+        <ThemeToggle />
+        <div className="mt-3">
+          <PwaSetup />
+        </div>
       </div>
 
       <h2 className="mb-2 mt-5 text-xs font-black uppercase tracking-wider text-muted">Privacy model</h2>

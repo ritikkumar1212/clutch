@@ -2,62 +2,126 @@
 
 @theme {
   --color-ink: #0b1020;
-  --color-panel: #121a2e;
-  --color-panel2: #182238;
-  --color-line: #24314f;
-  --color-neon: #22d3ee;
-  --color-mint: #34d399;
-  --color-violet: #8b5cf6;
-  --color-amber: #fbbf24;
-  --color-danger: #f87171;
-  --color-muted: #8ea0bf;
+  --color-panel: #121a2b;
+  --color-panel2: #1b2740;
+  --color-line: #2d3b5c;
+  --color-neon: #ff907a;
+  --color-mint: #6ee7c8;
+  --color-violet: #ad8cff;
+  --color-amber: #ffd27d;
+  --color-danger: #ff7891;
+  --color-muted: #a9b7d0;
 }
 
 html, body {
-  background: var(--color-ink);
-  color: #e6ecf8;
+  background: #0b1020;
+  color: #f8fafc;
   -webkit-tap-highlight-color: transparent;
 }
 
 body {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   overscroll-behavior-y: none;
+  background-image:
+    radial-gradient(circle at 12% 0%, rgba(173, 140, 255, 0.1), transparent 30%),
+    radial-gradient(circle at 92% 100%, rgba(110, 231, 200, 0.07), transparent 28%);
+}
+
+html.light,
+html.light body {
+  --color-ink: #e9edf5;
+  --color-panel: #f1f3f8;
+  --color-panel2: #e3e8f2;
+  --color-line: #c8d1e1;
+  --color-muted: #5e6b82;
+  background: #e9edf5;
+  color: #172033;
+}
+
+html.light body {
+  background-image:
+    radial-gradient(circle at 12% 0%, rgba(173, 140, 255, 0.14), transparent 30%),
+    radial-gradient(circle at 92% 100%, rgba(110, 231, 200, 0.12), transparent 28%);
 }
 
 /* safe areas for notched phones */
 .safe-top { padding-top: max(env(safe-area-inset-top), 12px); }
 .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 8px); }
+.floating-clutch {
+  right: max(1rem, calc((100vw - 28rem) / 2 + 1rem));
+  bottom: calc(4.5rem + max(env(safe-area-inset-bottom), 8px));
+}
 
 /* Leaflet must sit under our fixed bottom nav */
 .leaflet-container {
-  background: #0b1020;
+  background: #111318;
   font-family: inherit;
   z-index: 0;
 }
 .leaflet-pane, .leaflet-top, .leaflet-bottom, .leaflet-control { z-index: 5 !important; }
 .leaflet-control-attribution {
-  background: rgba(11, 16, 32, 0.7) !important;
-  color: #8ea0bf !important;
+  background: rgba(17, 19, 24, 0.78) !important;
+  color: #9ca3c7 !important;
   font-size: 9px !important;
 }
 .leaflet-control-attribution a { color: #22d3ee !important; }
+
+/* Light map surface stays readable while the rest of the app uses dark chrome. */
+.cr-map-shell .leaflet-container { background: #e2e8f0; }
+.cr-map-shell .leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.82) !important;
+  color: #64748b !important;
+}
+.cr-map-shell .leaflet-control-attribution a { color: #0891b2 !important; }
+.cr-map-shell .leaflet-control-attribution {
+  padding: 1px 3px !important;
+  font-size: 8px !important;
+  line-height: 1.1 !important;
+  opacity: 0.72;
+}
 
 /* custom pin */
 .cr-pin {
   display: grid;
   place-items: center;
   font-size: 26px;
-  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+  filter: drop-shadow(0 4px 5px rgba(15, 23, 42, 0.3));
 }
 
 /* thin scrollbars for card lists */
 .scroll-thin::-webkit-scrollbar { width: 4px; }
-.scroll-thin::-webkit-scrollbar-thumb { background: #24314f; border-radius: 4px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: #343b48; border-radius: 4px; }
+.scrollbar-transparent { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+.scrollbar-transparent::-webkit-scrollbar { width: 7px; }
+.scrollbar-transparent::-webkit-scrollbar-track,
+.scrollbar-transparent::-webkit-scrollbar-thumb { background: transparent; }
+
+.icon-flip {
+  transform-style: preserve-3d;
+  animation: icon-flip 460ms cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+@keyframes icon-flip {
+  0% { transform: perspective(240px) rotateY(-120deg) scale(0.75); opacity: 0.2; }
+  55% { transform: perspective(240px) rotateY(18deg) scale(1.08); opacity: 1; }
+  100% { transform: perspective(240px) rotateY(0) scale(1); opacity: 1; }
+}
+
+.gender-toggle-flip {
+  transform-style: preserve-3d;
+  animation: gender-toggle-flip 460ms cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+@keyframes gender-toggle-flip {
+  0% { transform: perspective(360px) rotateY(-90deg) scale(0.86); }
+  55% { transform: perspective(360px) rotateY(14deg) scale(1.04); }
+  100% { transform: perspective(360px) rotateY(0) scale(1); }
+}
 
 @keyframes pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.45); }
-  70% { box-shadow: 0 0 0 14px rgba(34, 211, 238, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(255, 107, 94, 0.45); }
+  70% { box-shadow: 0 0 0 14px rgba(255, 107, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 107, 94, 0); }
 }
 .pulse-dot { animation: pulse-ring 2s infinite; }
 

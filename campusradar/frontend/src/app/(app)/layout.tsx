@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { getToken, getUser } from "@/lib/api";
 import { ws } from "@/lib/ws";
 import { useHeartbeat } from "@/hooks/useHeartbeat";
@@ -9,6 +10,8 @@ import BottomNav from "@/components/BottomNav";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const isChat = pathname.startsWith("/chat/");
   const authed = typeof window !== "undefined" ? !!getToken() : false;
 
   useEffect(() => {
@@ -26,9 +29,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useHeartbeat(authed); // server-side presence lease (rule 1: coordinates stay in Redis)
 
   return (
-    <div className="mx-auto min-h-screen max-w-md pb-24 safe-top">
+    <div className={`mx-auto min-h-screen max-w-md safe-top ${isChat ? "pb-0" : "pb-24"}`}>
       {children}
-      <BottomNav />
+      {!isChat && <BottomNav />}
     </div>
   );
 }

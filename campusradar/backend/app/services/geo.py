@@ -1,8 +1,7 @@
 """Geo presence and university-wide helper matching.
 
-PRIVACY RULE 1: coordinates live ONLY in Redis. This module's outputs are
-user-ID lists or aggregate counts — exact positions of other users are never
-serialised into any API or WS payload.
+PRIVACY RULE 1: coordinates live in Redis and are returned only through the
+participant-authorized locations endpoint after request acceptance.
 """
 from __future__ import annotations
 
@@ -28,6 +27,18 @@ async def heartbeat(user_id: str, lat: float, lng: float, ttl_seconds: int) -> N
     expiry = _now_ms() + ttl_seconds * 1000
     await rds.geoadd(GEO_KEY, (lng, lat, user_id))
     await rds.zadd(EXPIRY_KEY, {user_id: expiry})
+
+
+async def current_position(user_id: str) -> tuple[float, float] | None:
+    """Return a live position only while the user's heartbeat lease is alive."""
+    alive = await alive_ids([user_id])
+    if not alive:
+        return None
+    positions = await rds.geopos(GEO_KEY, user_id)
+    if not positions or not positions[0]:
+        return None
+    longitude, latitude = positions[0]
+    return float(latitude), float(longitude)
 
 
 async def alive_ids(member_ids: list[str]) -> list[str]:
@@ -129,6 +140,6 @@ async def notify_user(user_id: str, payload: dict) -> None:
 
 
 __all__ = [
-    "heartbeat", "search_within", "online_ids", "alive_ids", "purge_stale", "filter_candidates",
+    "heartbeat", "current_position", "search_within", "online_ids", "alive_ids", "purge_stale", "filter_candidates",
     "genders_for", "cache_user_meta", "is_ws_connected", "notify_user",
 ]

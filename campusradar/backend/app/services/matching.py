@@ -22,15 +22,15 @@ log = logging.getLogger("campusradar.matching")
 def _request_card(req: HelpRequest, requester: User) -> dict:
     """The ONLY projection of a request that leaves the server pre-acceptance.
 
-    RULE 3: anonymous handle + gender badge + task info + target pin.
-    No email, no name, no photo, no requester live-location.
+    RULE 3: anonymous handle + gender badge + task info.
+    No email, no name, no photo, or coordinates before acceptance.
     """
     return {
         "id": req.id,
         "description": req.description,
         "landmark": req.landmark,
-        "lat": req.lat,                      # TARGET pin (by design, rule 3)
-        "lng": req.lng,
+        "lat": None,
+        "lng": None,
         "gender_filter": req.gender_filter,
         "status": enum_val(req.status) if hasattr(req.status, "value") else req.status,
         "expires_at": req.expires_at.isoformat(),
@@ -61,15 +61,13 @@ async def broadcast_new_request(db: AsyncSession, req: HelpRequest, requester: U
 
         await publish(f"ws:user:{uid}", event)
 
-        from app.services.geo import is_ws_connected
-        if not await is_ws_connected(uid):
-            await push.send_to_user(
-                db, uid,
-                title="Help request",
-                body=f"{card['requester']['handle']} needs help"
-                     f"{(' · ' + card['landmark']) if card['landmark'] else ''}",
-                url=f"/feed",
-            )
+        await push.send_to_user(
+            db, uid,
+            title="Help request",
+            body=f"{card['requester']['handle']} needs help"
+                 f"{(' · ' + card['landmark']) if card['landmark'] else ''}",
+            url="/feed",
+        )
     return len(targets)
 
 
