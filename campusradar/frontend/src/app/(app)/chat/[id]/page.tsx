@@ -222,7 +222,7 @@ export default function ChatPage() {
     <main className="flex h-[100dvh] flex-col overflow-hidden px-4 pt-1">
       {/* header */}
       <header className="mb-1 flex items-center gap-2 border-b border-line pb-2">
-        <Link href="/profile" className="text-muted" aria-label="Back">
+        <Link href="/requests" className="text-muted" aria-label="Back">
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M15 18l-6-6 6-6" />
           </svg>

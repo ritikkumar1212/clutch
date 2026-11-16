@@ -68,7 +68,7 @@ export default function RadarPage() {
           gender_filter: femaleOnly ? "female_only" : "everyone",
         }),
       });
-      router.push("/profile");
+      router.push("/requests");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not post request");
       setPosting(false);
