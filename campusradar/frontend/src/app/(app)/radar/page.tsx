@@ -76,13 +76,13 @@ export default function RadarPage() {
         </div>
       </section>
 
-      <section className="mt-5">
+      {me?.gender === "female" && <section className="mt-5">
         <p className="text-xs font-bold text-slate-200">Who can help?</p>
         <div className="mt-2 grid grid-cols-2 gap-2">
           <button type="button" onClick={() => setFemaleOnly(false)} className={`rounded-[14px] border py-3 text-sm font-black ${!femaleOnly ? "border-mint bg-mint/10 text-slate-100" : "border-line text-muted"}`}>Anyone</button>
           <button type="button" onClick={() => setFemaleOnly(true)} className={`rounded-[14px] border py-3 text-sm font-black ${femaleOnly ? "border-neon bg-neon/10 text-neon" : "border-line text-muted"}`}>♧ Female helpers only</button>
         </div>
-      </section>
+      </section>}
 
       {error && <p className="mt-4 rounded-xl bg-danger/10 px-3 py-2 text-xs text-danger">{error}</p>}
       <button onClick={post} disabled={posting} className="pressable mt-6 w-full rounded-[15px] bg-neon py-3.5 text-sm font-black text-ink disabled:opacity-50">{posting ? "Dropping your ping…" : "ϟ  Drop the ping"}</button>

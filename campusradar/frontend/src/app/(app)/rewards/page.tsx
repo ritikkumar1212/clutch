@@ -11,9 +11,10 @@ export default function RewardsPage() {
   const [ledger, setLedger] = useState<LedgerRow[]>([]);
   const [board, setBoard] = useState<LeaderboardRow[]>([]);
   const [tab, setTab] = useState<"ledger" | "board">("board");
-  const [points, setPoints] = useState(getUser()?.help_points ?? 0);
+  const [points, setPoints] = useState(0);
 
   useEffect(() => {
+    setPoints(getUser()?.help_points ?? 0);
     api<User>("/users/me").then((user) => { setPoints(user.help_points); updateUser(user); }).catch(() => {});
     api<LedgerRow[]>("/users/me/ledger").then(setLedger).catch(() => {});
     api<LeaderboardRow[]>("/users/leaderboard").then(setBoard).catch(() => {});
@@ -56,7 +57,7 @@ export default function RewardsPage() {
               const isMe = getUser()?.handle === row.handle;
               return <div key={row.handle} className={`flex items-center gap-3 rounded-[17px] border px-3 py-3 ${isMe ? "border-mint/50 bg-mint/10" : "border-line bg-panel"}`}>
                 <span className={`grid h-8 w-8 place-items-center rounded-full ${row.rank <= 3 ? "bg-neon/15 text-neon" : "bg-panel2 text-muted"} text-xs font-black`}>{row.rank}</span>
-                <span className="grid h-8 w-8 place-items-center rounded-full bg-[#35332f] text-[10px] font-black">{row.handle.slice(0, 2).toUpperCase()}</span>
+                <span className="avatar-token grid h-8 w-8 place-items-center rounded-full bg-[#35332f] text-[10px] font-black">{row.handle.slice(0, 2).toUpperCase()}</span>
                 <div className="min-w-0"><p className="truncate text-xs font-black">{row.handle}{isMe && <span className="ml-1 text-mint">· you</span>}</p><p className="mt-0.5 text-[10px] text-muted"><GenderBadge gender={row.gender} verified /> · campus helper</p></div>
                 <span className="ml-auto text-sm font-black text-mint">{row.help_points}</span>
               </div>;

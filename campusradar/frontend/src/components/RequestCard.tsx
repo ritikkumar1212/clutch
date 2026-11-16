@@ -31,38 +31,38 @@ export default function RequestCard({ req, variant, busy, onAccept }: Props) {
   const urgent = left.startsWith("0m") || left.endsWith("s left");
 
   return (
-    <article className="slide-up surface p-4 shadow-[0_10px_30px_rgba(0,0,0,.12)]">
+    <article className="card slide-up p-4 transition hover:border-ambertint-soft/30 active:scale-[0.99]">
       <div className="flex items-start gap-3">
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#373531] text-sm font-black text-[#f3e9df]">{initials}</div>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink-700 font-display text-sm font-bold text-mist">{initials}</div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="truncate text-sm font-black text-slate-100">{handle}</p>
-              <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted">
-                <span className="text-mint">♨</span> Campus verified <span className="text-line">·</span> {time}
+              <p className="truncate font-display text-sm font-bold text-mist">{handle}</p>
+              <p className="mt-0.5 flex items-center gap-1 text-[11px] text-mist-faint">
+                <span className="text-emeraldtint-muted">♨</span> Campus verified <span className="text-ink-600">·</span> {time}
               </p>
             </div>
-            <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${urgent ? "bg-danger/15 text-danger" : "bg-mint/15 text-mint"}`}>
+            <span className={`chip shrink-0 ${urgent ? "bg-ambertint-glow text-ambertint-soft" : "bg-emeraldtint-glow text-emeraldtint-muted"}`}>
               {left}
             </span>
           </div>
         </div>
       </div>
 
-      <p className="mt-4 text-[14px] leading-relaxed text-[#ddd3cc]">{req.description}</p>
+      <p className="mt-3 text-sm leading-relaxed text-mist-dim">{req.description}</p>
       <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold text-muted">
-        {dist != null && <span className="rounded-full bg-white/[0.08] px-2.5 py-1">{fmtDistance(dist)} away</span>}
-        {req.landmark && <span className="max-w-full truncate rounded-full bg-white/[0.08] px-2.5 py-1">{req.landmark}</span>}
-        {req.gender_filter === "female_only" && <span className="rounded-full bg-neon/15 px-2.5 py-1 text-neon">Female helpers only</span>}
+        {dist != null && <span className="chip bg-ink-700 text-mist-dim">{fmtDistance(dist)} away</span>}
+        {req.landmark && <span className="chip max-w-full truncate bg-ink-700 text-mist-dim">{req.landmark}</span>}
+        {req.gender_filter === "female_only" && <span className="chip bg-ambertint-glow text-ambertint-soft">Female helpers only</span>}
         {req.requester && <GenderBadge gender={req.requester.gender} verified={req.requester.gender_verified} />}
       </div>
 
       {variant === "feed" ? (
         <div className="mt-4 flex gap-2">
-          <button onClick={() => onAccept?.(req.id)} disabled={busy} className="pressable flex-1 rounded-[14px] bg-neon py-3 text-sm font-black text-ink disabled:opacity-50">
-            {busy ? "Clutching…" : "I Got You  →"}
+          <button onClick={() => onAccept?.(req.id)} disabled={busy} className="btn-primary flex-1">
+            {busy ? "Clutching…" : "ϟ  I Got You"}
           </button>
-          <button type="button" className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] border border-line text-muted" aria-label="Report request">⚑</button>
+          <button type="button" className="btn-ghost px-3" aria-label="Report request">⚑</button>
         </div>
       ) : (
         <p className="mt-4 text-[11px] font-semibold text-muted">
