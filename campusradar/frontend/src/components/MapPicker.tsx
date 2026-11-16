@@ -31,9 +31,9 @@ const PIN_SVG = `
 <div class="cr-pin">
   <svg width="34" height="42" viewBox="0 0 34 42" xmlns="http://www.w3.org/2000/svg">
     <path d="M17 1C8.16 1 1 8.16 1 17c0 11.2 13.5 22.5 15 23.7a1.54 1.54 0 002 0C19.5 39.5 33 28.2 33 17 33 8.16 25.84 1 17 1z"
-      fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
-    <circle cx="17" cy="17" r="6.5" fill="#ffffff"/>
-    <circle cx="17" cy="17" r="3" fill="#2563eb"/>
+      fill="#f2c6a3" stroke="#0b0b0b" stroke-width="2"/>
+    <circle cx="17" cy="17" r="6.5" fill="#0b0b0b"/>
+    <circle cx="17" cy="17" r="3" fill="#f2c6a3"/>
   </svg>
 </div>`;
 
@@ -385,7 +385,7 @@ export default function MapPicker({ lat, lng, onPinChange, compact }: Props) {
   }
 
   return (
-    <div className={`cr-map-shell relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.12)] ${expanded ? "" : "h-[68px]"}`}>
+    <div className={`cr-map-shell relative overflow-hidden rounded-[20px] border border-line bg-panel shadow-[0_12px_30px_rgba(0,0,0,0.18)] ${expanded ? "" : "h-[68px]"}`}>
       <div className="absolute left-2 right-2 top-2 z-[7]">
         <div className="relative">
           <svg

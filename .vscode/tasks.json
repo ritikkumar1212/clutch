@@ -2,11 +2,11 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "CampusRadar: Start Docker",
+      "label": "CampusRadar: dev",
       "type": "shell",
-      "command": "docker compose --env-file frontend/.env.local up --build",
+      "command": "npm.cmd exec -- next dev -p 3001",
       "options": {
-        "cwd": "${workspaceFolder}/campusradar"
+        "cwd": "${workspaceFolder}/campusradar/frontend"
       },
       "group": {
         "kind": "build",
@@ -20,20 +20,11 @@
       "problemMatcher": []
     },
     {
-      "label": "CampusRadar: Stop Docker",
+      "label": "CampusRadar: web",
       "type": "shell",
-      "command": "docker compose --env-file frontend/.env.local down",
+      "command": "docker compose --env-file frontend/.env.local up --build",
       "options": {
         "cwd": "${workspaceFolder}/campusradar"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "CampusRadar: Frontend Dev (hot reload)",
-      "type": "shell",
-      "command": "npm.cmd exec -- next dev -p 3001",
-      "options": {
-        "cwd": "${workspaceFolder}/campusradar/frontend"
       },
       "presentation": {
         "reveal": "always",
@@ -43,15 +34,16 @@
       "problemMatcher": []
     },
     {
-      "label": "CampusRadar: Open Dev Site",
+      "label": "CampusRadar: stop",
       "type": "shell",
-      "command": "Start-Process 'http://localhost:3001'",
+      "command": "docker compose --env-file frontend/.env.local down",
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}/campusradar"
       },
       "presentation": {
-        "reveal": "never",
-        "close": true
+        "reveal": "always",
+        "panel": "dedicated",
+        "showReuseMessage": false
       },
       "problemMatcher": []
     }

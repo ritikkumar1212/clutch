@@ -7,14 +7,14 @@ import { ws } from "@/lib/ws";
 import type { WsEvents } from "@/lib/types";
 
 const TABS = [
-  { href: "/radar", label: "Radar", icon: "radar" },
-  { href: "/feed", label: "Feed", icon: "feed" },
-  { href: "/requests", label: "Tasks", icon: "tasks" },
-  { href: "/profile", label: "You", icon: "you" },
+  { href: "/feed", label: "Clutch Feed", icon: "feed" },
+  { href: "/radar", label: "Drop a Ping", icon: "radar" },
+  { href: "/rewards", label: "Flex & Perks", icon: "points" },
+  { href: "/profile", label: "My Vibe", icon: "you" },
 ];
 
 function Icon({ name, active }: { name: string; active: boolean }) {
-  const cls = `h-5 w-5 ${active ? "text-neon" : "text-muted"}`;
+  const cls = `h-6 w-6 ${active ? "text-ink" : "text-muted"}`;
   const s = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   switch (name) {
     case "radar":
@@ -78,11 +78,11 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md border-t border-line bg-panel/95 backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[430px] border-t border-white/5 bg-[#11110f]/95 backdrop-blur-xl"
       style={{ paddingBottom: "max(env(safe-area-inset-bottom), 6px)" }}
       aria-label="Main navigation"
     >
-      <div className="grid grid-cols-4 pt-1.5">
+      <div className="grid grid-cols-4 px-2 pt-2">
         {TABS.map((t) => {
           const active = pathname === t.href || pathname.startsWith(t.href + "/");
           return (
@@ -95,12 +95,12 @@ export default function BottomNav() {
                   setUnreadFeed(0);
                 }
               }}
-              className={`flex flex-col items-center gap-0.5 py-1.5 text-[10px] font-semibold ${
-                active ? "text-neon" : "text-muted"
+              className={`pressable flex flex-col items-center gap-1 py-1 text-[9px] font-bold ${
+                active ? "text-mint" : "text-muted"
               }`}
               aria-current={active ? "page" : undefined}
             >
-              <span className="relative">
+              <span className={`relative grid h-11 w-11 place-items-center rounded-[16px] ${active ? "bg-neon" : "bg-white/[0.035]"}`}>
                 <Icon name={t.icon} active={active} />
                 {t.href === "/feed" && unreadFeed > 0 && (
                   <span className="absolute -right-2 -top-2 grid h-4 min-w-4 place-items-center rounded-full bg-neon px-1 text-[9px] font-black text-ink">
@@ -108,7 +108,7 @@ export default function BottomNav() {
                   </span>
                 )}
               </span>
-              {t.label}
+              <span className="whitespace-nowrap">{t.label}</span>
             </Link>
           );
         })}
