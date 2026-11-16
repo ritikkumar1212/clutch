@@ -2,12 +2,12 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "CampusRadar: dev",
-      "detail": "Frontend hot reload → http://localhost:3001",
+      "label": "CampusRadar: start",
+      "detail": "Build once, then hot reload -> VS Code Simple Browser http://localhost:3000",
       "type": "shell",
-      "command": "npm.cmd exec -- next dev -p 3001",
+      "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${workspaceFolder}/.vscode/start-campusradar.ps1\"",
       "options": {
-        "cwd": "${workspaceFolder}/campusradar/frontend"
+        "cwd": "${workspaceFolder}"
       },
       "group": {
         "kind": "build",
@@ -16,56 +16,8 @@
       "presentation": {
         "reveal": "always",
         "panel": "dedicated",
-        "showReuseMessage": false
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "CampusRadar: web",
-      "detail": "Full stack → http://localhost:3000",
-      "type": "shell",
-      "command": "docker compose --env-file frontend/.env.local up --build",
-      "options": {
-        "cwd": "${workspaceFolder}/campusradar"
-      },
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "showReuseMessage": false
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "CampusRadar: stop",
-      "type": "shell",
-      "command": "docker compose --env-file frontend/.env.local down",
-      "options": {
-        "cwd": "${workspaceFolder}/campusradar"
-      },
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "showReuseMessage": false
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "CampusRadar: open web",
-      "type": "shell",
-      "command": "Start-Process 'http://localhost:3000'",
-      "presentation": {
-        "reveal": "never",
-        "close": true
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "CampusRadar: open dev",
-      "type": "shell",
-      "command": "Start-Process 'http://localhost:3001'",
-      "presentation": {
-        "reveal": "never",
-        "close": true
+        "showReuseMessage": false,
+        "focus": false
       },
       "problemMatcher": []
     }
