@@ -1,8 +1,13 @@
 /* Tiny API client: JSON fetch + bearer token + 401 handling. */
 
+const browserHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
+const browserProtocol = typeof window !== "undefined" ? window.location.protocol : "http:";
+const socketProtocol = browserProtocol === "https:" ? "wss:" : "ws:";
+
 export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000/api/v1";
-export const WS_BASE = process.env.NEXT_PUBLIC_WS_BASE || "ws://localhost:8000/ws";
+  process.env.NEXT_PUBLIC_API_BASE || `http://${browserHost}:8000/api/v1`;
+export const WS_BASE =
+  process.env.NEXT_PUBLIC_WS_BASE || `${socketProtocol}//${browserHost}:8000/ws`;
 
 const TOKEN_KEY = "cr_token";
 const USER_KEY = "cr_user";
@@ -50,7 +55,9 @@ export async function api<T = unknown>(
   const headers: Record<string, string> = {
     ...((options.headers as Record<string, string>) || {}),
   };
-  if (!(options.body instanceof FormData)) headers["Content-Type"] = "application/json";
+  if (options.body !== undefined && !(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 

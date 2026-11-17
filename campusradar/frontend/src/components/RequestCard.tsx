@@ -1,10 +1,7 @@
 "use client";
 
-/* Request card: feed variant (helper sees anonymous card + accept) and
-   mine variant (requester sees live viewers + PIN; helper sees chat link). */
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
-import { fmtDistance, fmtTimeLeft, haversineMeters } from "@/lib/geo";
+import { fmtClock, fmtDistance, fmtTimeLeft, haversineMeters } from "@/lib/geo";
 import { GenderBadge } from "@/components/Badges";
 import { useLivePosition } from "@/hooks/useGeolocation";
 import type { RequestCard as Card } from "@/lib/types";
@@ -14,7 +11,6 @@ interface Props {
   variant: "feed" | "mine" | "helping";
   busy?: boolean;
   onAccept?: (id: string) => void;
-  removedIds?: Set<string>;
 }
 
 export default function RequestCard({ req, variant, busy, onAccept }: Props) {
@@ -25,59 +21,58 @@ export default function RequestCard({ req, variant, busy, onAccept }: Props) {
   const [left, setLeft] = useState(() => fmtTimeLeft(req.expires_at));
 
   useEffect(() => {
-    const t = setInterval(() => setLeft(fmtTimeLeft(req.expires_at)), 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setLeft(fmtTimeLeft(req.expires_at)), 1000);
+    return () => clearInterval(timer);
   }, [req.expires_at]);
 
-  const expiredSoon = left.startsWith("0m") || left.endsWith("s left");
+  const handle = req.requester?.handle ?? "Campusmate";
+  const initials = handle.slice(0, 2).toUpperCase();
+  const time = req.created_at ? fmtClock(req.created_at) : "just now";
+  const urgent = left.startsWith("0m") || left.endsWith("s left");
 
   return (
-    <article className="slide-up rounded-2xl border border-line bg-panel p-4">
-      <div className="flex items-start justify-between gap-2">
+    <article className="card slide-up p-4 transition hover:border-ambertint-soft/30 active:scale-[0.99]">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink-700 font-display text-sm font-bold text-mist">{initials}</div>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-sm font-bold">Help request</span>
-            {req.gender_filter === "female_only" && (
-              <span className="rounded-full bg-pink-500/15 px-2 py-0.5 text-[10px] font-bold text-pink-300">
-                female helpers only
-              </span>
-            )}
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="truncate font-display text-sm font-bold text-mist">{handle}</p>
+              <p className="mt-0.5 flex items-center gap-1 text-[11px] text-mist-faint">
+                <span className="text-emeraldtint-muted">♨</span> Campus verified <span className="text-ink-600">·</span> {time}
+              </p>
+            </div>
+            <span className={`chip shrink-0 ${urgent ? "bg-ambertint-glow text-ambertint-soft" : "bg-emeraldtint-glow text-emeraldtint-muted"}`}>
+              {left}
+            </span>
           </div>
-          <p className="mt-1 text-[13px] leading-snug text-slate-300">{req.description}</p>
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-        <span className="flex items-center gap-1.5">
-          <span className="font-mono text-slate-200">@{req.requester?.handle ?? "—"}</span>
-          {req.requester && <GenderBadge gender={req.requester.gender} verified={req.requester.gender_verified} />}
-        </span>
-        {req.landmark && <span className="truncate">{req.landmark}</span>}
-        {dist != null && <span>≈ {fmtDistance(dist)} from you</span>}
+      <p className="mt-3 text-sm leading-relaxed text-mist-dim">{req.description}</p>
+      <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold text-muted">
+        {dist != null && <span className="chip bg-ink-700 text-mist-dim">{fmtDistance(dist)} away</span>}
+        {req.landmark && <span className="chip max-w-full truncate bg-ink-700 text-mist-dim">{req.landmark}</span>}
+        {req.gender_filter === "female_only" && <span className="chip bg-ambertint-glow text-ambertint-soft">Female helpers only</span>}
+        {req.requester && <GenderBadge gender={req.requester.gender} verified={req.requester.gender_verified} />}
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-2">
-        {variant === "feed" ? (
-          <>
-            <span className={`text-[11px] ${expiredSoon ? "text-danger" : "text-muted"}`}>{left}</span>
-            <button
-              onClick={() => onAccept?.(req.id)}
-              disabled={busy}
-              className="rounded-xl bg-neon px-4 py-2 text-sm font-bold text-ink shadow-lg shadow-neon/20 transition active:scale-95 disabled:opacity-50"
-            >
-              {busy ? "Accepting…" : "Accept & help"}
-            </button>
-          </>
-        ) : (
-          <span className="text-[11px] text-muted">
-            {req.status === "open" && left}
-            {req.status === "accepted" && "helper on the way — open the chat"}
-            {req.status === "completed" && "completed"}
-            {req.status === "expired" && "expired"}
-            {req.status === "cancelled" && "cancelled"}
-          </span>
-        )}
-      </div>
+      {variant === "feed" ? (
+        <div className="mt-4 flex gap-2">
+          <button onClick={() => onAccept?.(req.id)} disabled={busy} className="btn-primary flex-1">
+            {busy ? "Clutching…" : "ϟ  I Got You"}
+          </button>
+          <button type="button" className="btn-ghost px-3" aria-label="Report request">⚑</button>
+        </div>
+      ) : (
+        <p className="mt-4 text-[11px] font-semibold text-muted">
+          {req.status === "open" && left}
+          {req.status === "accepted" && "helper on the way · open the chat"}
+          {req.status === "completed" && "completed"}
+          {req.status === "expired" && "expired"}
+          {req.status === "cancelled" && "cancelled"}
+        </p>
+      )}
     </article>
   );
 }

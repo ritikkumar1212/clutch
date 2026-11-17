@@ -24,7 +24,7 @@ function statusChip(status: string) {
     cancelled: "bg-white/10 text-muted",
   };
   return (
-    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${map[status] || map.expired}`}>
+    <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${map[status] || map.expired}`}>
       {status}
     </span>
   );
@@ -120,8 +120,8 @@ export default function RequestsPage() {
   const row = (r: Card, kind: "created" | "helping") => {
     const historyItem = r.status === "completed" || r.status === "cancelled" || r.status === "expired";
     return (
-      <article key={r.id} className="slide-up rounded-2xl border border-line bg-panel p-4">
-        <div className="flex items-center justify-between gap-2">
+      <article key={r.id} className="slide-up surface p-4">
+            <div className="flex items-center justify-between gap-2">
           <div className="flex-1 truncate text-[13px] font-bold">{kind === "created" ? "You asked for help" : "You helped someone"}</div>
           {statusChip(r.status)}
         </div>
@@ -136,15 +136,15 @@ export default function RequestsPage() {
 
         {/* handshake PIN — rule 5 */}
         {kind === "created" && r.status === "accepted" && (
-          <div className="mt-3 rounded-xl border border-violet/40 bg-violet/10 p-3">
+            <div className="mt-3 rounded-[17px] border border-neon/30 bg-neon/10 p-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-violet">Handshake PIN (share when you meet)</p>
-              <button onClick={() => revealPin(r.id)} className="rounded-lg bg-violet/20 px-2.5 py-1 text-xs font-bold text-violet">
+              <p className="text-xs font-semibold text-neon">Handshake PIN (share when you meet)</p>
+              <button onClick={() => revealPin(r.id)} className="rounded-lg bg-neon/20 px-2.5 py-1 text-xs font-bold text-neon">
                 {showPin === r.id ? "hide" : "show"}
               </button>
             </div>
             {showPin === r.id && (
-              <p className="mt-2 text-center text-3xl font-black tracking-[0.5em] text-violet">
+                <p className="mt-2 text-center text-3xl font-black tracking-[0.5em] text-neon">
                 {pins[r.id] ?? "…"}
               </p>
             )}
@@ -161,7 +161,7 @@ export default function RequestsPage() {
           {(r.status === "accepted" || r.status === "completed") && (
             <Link
               href={`/chat/${r.id}`}
-              className="flex-1 rounded-xl bg-neon px-3 py-2.5 text-center text-sm font-bold text-ink transition active:scale-95"
+              className="pressable flex-1 rounded-[14px] bg-neon px-3 py-2.5 text-center text-sm font-black text-ink"
             >
               {historyItem ? "View chat" : "Open chat"}
             </Link>
@@ -180,16 +180,16 @@ export default function RequestsPage() {
   };
 
   return (
-    <main className="px-4 pt-2">
+    <main className="px-4 pb-6 pt-2">
       <header className="mb-3">
-        <h1 className="text-lg font-black tracking-tight">Your tasks</h1>
-        <p className="text-[11px] text-muted">Live status for everything you asked or accepted</p>
+        <h1 className="section-title text-neon">My Tasks</h1>
+        <p className="mt-1 text-sm text-muted">Live status for everything you asked or accepted.</p>
       </header>
 
       {loading ? (
         <div className="space-y-3">
           {[0, 1].map((i) => (
-            <div key={i} className="h-36 animate-pulse rounded-2xl bg-panel" />
+            <div key={i} className="h-36 animate-pulse rounded-[21px] bg-panel" />
           ))}
         </div>
       ) : (

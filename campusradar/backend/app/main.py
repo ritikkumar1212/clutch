@@ -86,7 +86,9 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?",
+    # VS Code's integrated Simple Browser loads the app inside a local
+    # vscode-webview origin. Keep this limited to local development origins.
+    allow_origin_regex=r"(?:https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?|vscode-webview://.*)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -1,7 +1,5 @@
 "use client";
 
-/* 3-step signup: phone number → OTP code → password. Anonymous handle is
-   auto-generated; users never use real names on CampusRadar. */
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,143 +8,13 @@ import { api, setSession } from "@/lib/api";
 export default function SignupPage() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [phone, setPhone] = useState("");
-  const [code, setCode] = useState("");
-  const [password, setPassword] = useState("");
-  const [devCode, setDevCode] = useState<string | null>(null);
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function requestOtp(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      const res = await api<{ dev_code: string | null }>("/auth/request-otp", {
-        method: "POST",
-        body: JSON.stringify({ phone }),
-      });
-      setDevCode(res.dev_code);
-      setStep(2);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send code");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function verifyOtp(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      const res = await api<{ signup_token: string }>("/auth/verify-otp", {
-        method: "POST",
-        body: JSON.stringify({ phone, code }),
-      });
-      localStorage.setItem("cr_signup_token", res.signup_token);
-      setStep(3);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Invalid code");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function finish(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      const signupToken = localStorage.getItem("cr_signup_token") || "";
-      const data = await api<{ token: string; user: never }>("/auth/signup", {
-        method: "POST",
-        body: JSON.stringify({ signup_token: signupToken, password }),
-      });
-      localStorage.removeItem("cr_signup_token");
-      setSession(data.token, data.user);
-      router.replace("/onboarding");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Signup failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 safe-top">
-      <div className="mb-8">
-        <div className="mb-2 flex gap-1.5" aria-hidden>
-          {[1, 2, 3].map((n) => (
-            <span key={n} className={`h-1.5 flex-1 rounded-full ${step >= n ? "bg-neon" : "bg-line"}`} />
-          ))}
-        </div>
-        <h1 className="text-2xl font-black tracking-tight">
-          {step === 1 && "Verify your phone number"}
-          {step === 2 && "Enter the 6-digit code"}
-          {step === 3 && "Set a password"}
-        </h1>
-        <p className="mt-1 text-sm text-muted">
-          {step === 1 && "Enter your 10-digit mobile number to join the campus network."}
-          {step === 2 && (devCode
-            ? `Dev mode: code shown here (production sends SMS) — ${devCode}`
-            : "We sent an SMS code to your phone.")}
-          {step === 3 && "Last step — then pick your anonymous handle."}
-        </p>
-      </div>
-
-      {step === 1 && (
-        <form onSubmit={requestOtp} className="space-y-4">
-          <input
-            type="tel" inputMode="tel" required value={phone} autoComplete="tel"
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="+91 98765 43210"
-            className="w-full rounded-xl border border-line bg-panel px-4 py-3.5 text-sm placeholder:text-muted/60 focus:border-neon focus:outline-none"
-          />
-          {error && <p className="rounded-xl bg-danger/10 px-3 py-2 text-xs text-danger">{error}</p>}
-          <button type="submit" disabled={busy}
-            className="w-full rounded-xl bg-neon py-3.5 text-sm font-black text-ink shadow-lg shadow-neon/20 transition active:scale-95 disabled:opacity-50">
-            {busy ? "Sending…" : "Send verification code"}
-          </button>
-        </form>
-      )}
-
-      {step === 2 && (
-        <form onSubmit={verifyOtp} className="space-y-4">
-          <input
-            inputMode="numeric" required value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-            placeholder="000000"
-            className="w-full rounded-xl border border-line bg-panel px-4 py-3.5 text-center text-2xl font-black tracking-[0.4em] placeholder:tracking-normal placeholder:text-muted/60 focus:border-neon focus:outline-none"
-          />
-          {error && <p className="rounded-xl bg-danger/10 px-3 py-2 text-xs text-danger">{error}</p>}
-          <button type="submit" disabled={busy}
-            className="w-full rounded-xl bg-neon py-3.5 text-sm font-black text-ink shadow-lg shadow-neon/20 transition active:scale-95 disabled:opacity-50">
-            {busy ? "Checking…" : "Verify code"}
-          </button>
-        </form>
-      )}
-
-      {step === 3 && (
-        <form onSubmit={finish} className="space-y-4">
-          <input
-            type="password" required minLength={8} value={password} autoComplete="new-password"
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password (min 8 characters)"
-            className="w-full rounded-xl border border-line bg-panel px-4 py-3.5 text-sm placeholder:text-muted/60 focus:border-neon focus:outline-none"
-          />
-          {error && <p className="rounded-xl bg-danger/10 px-3 py-2 text-xs text-danger">{error}</p>}
-          <button type="submit" disabled={busy}
-            className="w-full rounded-xl bg-neon py-3.5 text-sm font-black text-ink shadow-lg shadow-neon/20 transition active:scale-95 disabled:opacity-50">
-            {busy ? "Creating account…" : "Create account"}
-          </button>
-        </form>
-      )}
-
-      <p className="mt-6 text-center text-sm text-muted">
-        Already helping?{" "}
-        <Link href="/login" className="font-bold text-neon">Log in</Link>
-      </p>
-    </main>
-  );
+  const [phone, setPhone] = useState(""); const [code, setCode] = useState(""); const [password, setPassword] = useState("");
+  const [devCode, setDevCode] = useState<string | null>(null); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
+  async function requestOtp(event: React.FormEvent) { event.preventDefault(); setBusy(true); setError(""); try { const res = await api<{ dev_code: string | null }>("/auth/request-otp", { method: "POST", body: JSON.stringify({ phone }) }); setDevCode(res.dev_code); setStep(2); } catch (err) { setError(err instanceof Error ? err.message : "Could not send code"); } finally { setBusy(false); } }
+  async function verifyOtp(event: React.FormEvent) { event.preventDefault(); setBusy(true); setError(""); try { const res = await api<{ signup_token: string }>("/auth/verify-otp", { method: "POST", body: JSON.stringify({ phone, code }) }); localStorage.setItem("cr_signup_token", res.signup_token); setStep(3); } catch (err) { setError(err instanceof Error ? err.message : "Invalid code"); } finally { setBusy(false); } }
+  async function finish(event: React.FormEvent) { event.preventDefault(); setBusy(true); setError(""); try { const token = localStorage.getItem("cr_signup_token") || ""; const data = await api<{ token: string; user: never }>("/auth/signup", { method: "POST", body: JSON.stringify({ signup_token: token, password }) }); localStorage.removeItem("cr_signup_token"); setSession(data.token, data.user); router.replace("/onboarding"); } catch (err) { setError(err instanceof Error ? err.message : "Signup failed"); } finally { setBusy(false); } }
+  const titles = ["Verify your phone", "Enter your code", "Set a password"];
+  return <main className="mx-auto flex min-h-screen max-w-[430px] flex-col px-6 pb-8 pt-8 safe-top"><div className="flex items-center gap-2"><span className="grid h-9 w-9 place-items-center rounded-[12px] bg-neon text-xl font-black text-ink">ϟ</span><span className="text-lg font-black text-neon">Clutch</span></div><div className="my-auto py-12"><div className="flex gap-1.5">{[1, 2, 3].map((item) => <span key={item} className={`h-1.5 flex-1 rounded-full ${step >= item ? "bg-neon" : "bg-line"}`} />)}</div><h1 className="mt-7 text-[30px] font-black leading-tight tracking-[-0.06em]">{titles[step - 1]}</h1><p className="mt-3 text-sm leading-relaxed text-muted">{step === 1 ? "Join the campus network with your phone number." : step === 2 ? (devCode ? `Dev mode code: ${devCode}` : "We sent a code to your phone.") : "One last step, then choose your private campus badge."}</p>{step === 1 && <form onSubmit={requestOtp} className="mt-8 space-y-4"><input type="tel" inputMode="tel" required value={phone} autoComplete="tel" onChange={(event) => setPhone(event.target.value)} placeholder="+91 98765 43210" className="w-full rounded-[14px] border border-line bg-panel px-4 py-3.5 text-sm placeholder:text-muted/60 focus:border-neon focus:outline-none" /><SubmitButton busy={busy}>{busy ? "Sending…" : "Send me the code  →"}</SubmitButton></form>}{step === 2 && <form onSubmit={verifyOtp} className="mt-8 space-y-4"><input inputMode="numeric" required value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" className="w-full rounded-[14px] border border-line bg-panel px-4 py-4 text-center text-2xl font-black tracking-[0.4em] placeholder:tracking-normal placeholder:text-muted/60 focus:border-neon focus:outline-none" /><SubmitButton busy={busy}>{busy ? "Checking…" : "Verify code  →"}</SubmitButton></form>}{step === 3 && <form onSubmit={finish} className="mt-8 space-y-4"><input type="password" required minLength={8} value={password} autoComplete="new-password" onChange={(event) => setPassword(event.target.value)} placeholder="Password (min 8 characters)" className="w-full rounded-[14px] border border-line bg-panel px-4 py-3.5 text-sm placeholder:text-muted/60 focus:border-neon focus:outline-none" /><SubmitButton busy={busy}>{busy ? "Creating account…" : "Create my account  →"}</SubmitButton></form>}{error && <p className="mt-4 rounded-xl bg-danger/10 px-3 py-2 text-xs text-danger">{error}</p>}<p className="mt-6 text-center text-sm text-muted">Already helping? <Link href="/login" className="font-black text-neon">Log in</Link></p></div><p className="text-center text-[11px] text-muted">♧ Verified campus student · your identity stays sealed</p></main>;
 }
+
+function SubmitButton({ busy, children }: { busy: boolean; children: React.ReactNode }) { return <button type="submit" disabled={busy} className="pressable w-full rounded-[14px] bg-neon py-3.5 text-sm font-black text-ink disabled:opacity-50">{children}</button>; }

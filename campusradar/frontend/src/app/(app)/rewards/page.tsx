@@ -1,9 +1,8 @@
 "use client";
 
-/* Help Points wallet (rule 6): balance, ledger history, campus leaderboard. */
 import { useEffect, useState } from "react";
 import { api, getUser, updateUser } from "@/lib/api";
-import { GenderBadge, PointsPill } from "@/components/Badges";
+import { GenderBadge } from "@/components/Badges";
 import { fmtClock } from "@/lib/geo";
 import { ws } from "@/lib/ws";
 import type { LedgerRow, LeaderboardRow, User, WsEvents } from "@/lib/types";
@@ -15,106 +14,58 @@ export default function RewardsPage() {
   const [points, setPoints] = useState(0);
 
   useEffect(() => {
-    /* server is the source of truth for the balance (localStorage may be stale) */
-    api<User>("/users/me")
-      .then((u) => {
-        setPoints(u.help_points);
-        updateUser(u);
-      })
-      .catch(() => {});
+    setPoints(getUser()?.help_points ?? 0);
+    api<User>("/users/me").then((user) => { setPoints(user.help_points); updateUser(user); }).catch(() => {});
     api<LedgerRow[]>("/users/me/ledger").then(setLedger).catch(() => {});
     api<LeaderboardRow[]>("/users/leaderboard").then(setBoard).catch(() => {});
-    const off = ws.on("points_awarded", (p: WsEvents["points_awarded"]) => {
-      setPoints(p.total);
+    return ws.on("points_awarded", (event: WsEvents["points_awarded"]) => {
+      setPoints(event.total);
       api<LedgerRow[]>("/users/me/ledger").then(setLedger).catch(() => {});
-      api<User>("/users/me")
-        .then((u) => updateUser(u))
-        .catch(() => {});
     });
-    return off;
   }, []);
 
-  useEffect(() => {
-    const u = getUser();
-    if (u && u.help_points !== points) updateUser({ ...u, help_points: points });
-  }, [points]);
-
-  const reasonLabel: Record<string, string> = {
-    signup_bonus: "Welcome bonus",
-    completion: "Helped a campusmate",
-    adjustment: "Adjustment",
-  };
+  const reasonLabel: Record<string, string> = { signup_bonus: "Welcome bonus", completion: "Helped a campusmate", adjustment: "Adjustment" };
 
   return (
-    <main className="px-4 pt-2">
-      <header className="mb-3">
-        <h1 className="text-lg font-black tracking-tight">Help Points</h1>
-        <p className="text-[11px] text-muted">Earn +10 per verified help, +5 if urgent, +10 if emergency</p>
+    <main className="px-4 pb-6 pt-2">
+      <header>
+        <h1 className="section-title text-neon">Flex & Perks</h1>
+        <p className="mt-1 text-sm text-muted">Every favor banks points. Big or small, all help is equal.</p>
       </header>
 
-      <div className="rounded-3xl border border-mint/30 bg-gradient-to-br from-mint/15 to-transparent p-6 text-center">
-        <p className="text-xs font-bold uppercase tracking-widest text-muted">Your balance</p>
-        <p className="mt-1 text-5xl font-black text-mint">{points}</p>
-        <p className="mt-1 text-[11px] text-muted">Help Points — campus bragging rights, not money</p>
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        <button type="button" onClick={() => setTab("board")} className={`surface pressable p-4 text-left ${tab === "board" ? "border-neon/40" : ""}`}>
+          <span className="text-2xl text-neon">♜</span><p className="mt-3 text-sm font-black">Campus leaderboard</p><p className="mt-1 text-[11px] text-muted">See who is showing up.</p>
+        </button>
+        <button type="button" onClick={() => setTab("ledger")} className={`surface pressable p-4 text-left ${tab === "ledger" ? "border-neon/40" : ""}`}>
+          <span className="text-2xl text-mint">▣</span><p className="mt-3 text-sm font-black">Point history</p><p className="mt-1 text-[11px] text-muted">Every credit, clearly logged.</p>
+        </button>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        {(["board", "ledger"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`rounded-xl border py-2.5 text-xs font-bold transition ${
-              tab === t ? "border-neon bg-neon/10 text-neon" : "border-line bg-panel text-muted"
-            }`}
-          >
-            {t === "board" ? "Leaderboard" : "History"}
-          </button>
-        ))}
-      </div>
+      <section className="mt-3 flex items-center gap-3 rounded-[19px] border border-line bg-panel p-4">
+        <div className="grid h-12 w-12 place-items-center rounded-[15px] bg-neon/15 text-2xl text-neon">♧</div>
+        <div><p className="text-sm font-black">Your Clutch balance</p><p className="mt-1 text-xs text-muted">Earn points through verified help.</p></div>
+        <span className="ml-auto rounded-full bg-neon px-3 py-1.5 text-xs font-black text-ink">{points} pts</span>
+      </section>
 
       {tab === "board" ? (
-        <div className="mt-3 space-y-2 pb-4">
-          {board.length === 0 && <p className="rounded-2xl border border-dashed border-line px-4 py-6 text-center text-sm text-muted">No helpers ranked yet.</p>}
-          {board.map((row) => {
-            const isMe = getUser()?.handle === row.handle;
-            return (
-              <div
-                key={row.handle}
-                className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${
-                  isMe ? "border-neon/50 bg-neon/10" : "border-line bg-panel"
-                }`}
-              >
-                <span className={`w-6 text-center text-sm font-black ${row.rank <= 3 ? "text-amber" : "text-muted"}`}>
-                  {row.rank}
-                </span>
-                <span className="font-mono text-sm font-bold">@{row.handle}</span>
-                <GenderBadge gender={row.gender} verified />
-                <span className="ml-auto"><PointsPill points={row.help_points} /></span>
-              </div>
-            );
-          })}
-          <p className="pt-1 text-center text-[10px] text-muted">
-            Anonymous by design — handles only, no names or photos.
-          </p>
-        </div>
+        <section className="mt-7">
+          <div className="flex items-end justify-between"><div><h2 className="text-base font-black">Top helpers</h2><p className="mt-1 text-[11px] text-muted">Anonymous by design.</p></div><div className="rounded-full bg-panel p-1 text-[10px] font-bold text-muted"><span className="inline-block rounded-full bg-neon px-3 py-1 text-ink">All time</span></div></div>
+          <div className="mt-3 space-y-2">
+            {board.length === 0 && <p className="surface px-4 py-6 text-center text-sm text-muted">No helpers ranked yet.</p>}
+            {board.map((row) => {
+              const isMe = getUser()?.handle === row.handle;
+              return <div key={row.handle} className={`flex items-center gap-3 rounded-[17px] border px-3 py-3 ${isMe ? "border-mint/50 bg-mint/10" : "border-line bg-panel"}`}>
+                <span className={`grid h-8 w-8 place-items-center rounded-full ${row.rank <= 3 ? "bg-neon/15 text-neon" : "bg-panel2 text-muted"} text-xs font-black`}>{row.rank}</span>
+                <span className="avatar-token grid h-8 w-8 place-items-center rounded-full bg-[#35332f] text-[10px] font-black">{row.handle.slice(0, 2).toUpperCase()}</span>
+                <div className="min-w-0"><p className="truncate text-xs font-black">{row.handle}{isMe && <span className="ml-1 text-mint">· you</span>}</p><p className="mt-0.5 text-[10px] text-muted"><GenderBadge gender={row.gender} verified /> · campus helper</p></div>
+                <span className="ml-auto text-sm font-black text-mint">{row.help_points}</span>
+              </div>;
+            })}
+          </div>
+        </section>
       ) : (
-        <div className="mt-3 space-y-2 pb-4">
-          {ledger.length === 0 && (
-            <p className="rounded-2xl border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
-              Complete a verified help to earn your first points.
-            </p>
-          )}
-          {ledger.map((l) => (
-            <div key={l.id} className="flex items-center justify-between rounded-2xl border border-line bg-panel px-4 py-3">
-              <div>
-                <p className="text-sm font-bold">{reasonLabel[l.reason] || l.reason}</p>
-                {l.note && <p className="text-[11px] text-muted">{l.note}</p>}
-                <p className="text-[10px] text-muted">{fmtClock(l.created_at)}</p>
-              </div>
-              <PointsPill points={l.points} />
-            </div>
-          ))}
-        </div>
+        <section className="mt-7"><h2 className="text-base font-black">Point history</h2><div className="mt-3 space-y-2">{ledger.length === 0 && <p className="surface px-4 py-6 text-center text-sm text-muted">Complete a verified help to earn your first points.</p>}{ledger.map((entry) => <div key={entry.id} className="flex items-center justify-between rounded-[17px] border border-line bg-panel px-4 py-3"><div><p className="text-sm font-bold">{reasonLabel[entry.reason] || entry.reason}</p><p className="mt-1 text-[11px] text-muted">{entry.note || "CampusRadar activity"} · {fmtClock(entry.created_at)}</p></div><span className="text-sm font-black text-mint">+{entry.points}</span></div>)}</div></section>
       )}
     </main>
   );
