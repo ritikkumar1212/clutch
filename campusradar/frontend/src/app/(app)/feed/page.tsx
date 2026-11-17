@@ -57,7 +57,7 @@ export default function FeedPage() {
           <h1 className="font-display text-3xl font-bold tracking-tight text-ambertint-soft">Clutch</h1>
           <span className="chip bg-emeraldtint-glow px-3 py-1.5 text-emeraldtint-muted">♧ Campus verified</span>
         </div>
-        <h2 className="mt-4 font-display text-2xl font-bold leading-tight">Your campus. Your backup.</h2>
+        <h2 className="mt-4 font-display text-2xl font-bold leading-tight">Right on time, everytime.</h2>
         <p className="mt-1 text-sm text-mist-dim">A little help goes a long way.</p>
       </header>
 

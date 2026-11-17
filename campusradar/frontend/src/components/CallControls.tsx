@@ -23,6 +23,7 @@ export default function CallControls({ requestId, userId, counterpartHandle }: P
   const localStreamRef = useRef<MediaStream | null>(null);
   const pendingOfferRef = useRef<RTCSessionDescriptionInit | null>(null);
   const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
+  const answerApplyingRef = useRef(false);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
 
@@ -48,6 +49,7 @@ export default function CallControls({ requestId, userId, counterpartHandle }: P
     setStatus("idle");
     pendingOfferRef.current = null;
     pendingIceRef.current = [];
+    answerApplyingRef.current = false;
   }
 
   async function applyRemoteDescription(peer: RTCPeerConnection, description: RTCSessionDescriptionInit) {
@@ -139,8 +141,23 @@ export default function CallControls({ requestId, userId, counterpartHandle }: P
         setIncomingKind(data.kind === "video" ? "video" : "audio");
         setStatus("incoming");
       } else if (event.signal === "answer" && peerRef.current) {
-        await applyRemoteDescription(peerRef.current, event.data as RTCSessionDescriptionInit);
-        setStatus("connected");
+        const peer = peerRef.current;
+        // A call answer is valid only once, while the caller has a local offer.
+        // Redis/WebSocket reconnects can deliver the same answer more than once.
+        if (peer.signalingState !== "have-local-offer" || answerApplyingRef.current) return;
+        answerApplyingRef.current = true;
+        try {
+          await applyRemoteDescription(peer, event.data as RTCSessionDescriptionInit);
+          setStatus("connected");
+        } catch {
+          // Ignore a late duplicate that arrived after the first answer changed
+          // the peer back to stable; surface only genuine negotiation failures.
+          const stateAfterError = peer.signalingState as RTCSignalingState;
+          if (stateAfterError !== "stable") {
+            setCallError("The call answer could not be applied. Please call again.");
+            closePeer();
+          }
+        }
       } else if (event.signal === "ice" && event.data) {
         const candidate = event.data as RTCIceCandidateInit;
         if (peerRef.current?.remoteDescription) {
