@@ -18,13 +18,25 @@ export default function CallControls({ requestId, userId, counterpartHandle }: P
   const [kind, setKind] = useState<CallKind>("audio");
   const [incomingKind, setIncomingKind] = useState<CallKind>("audio");
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [callError, setCallError] = useState("");
   const peerRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const pendingOfferRef = useRef<RTCSessionDescriptionInit | null>(null);
+  const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
+    const video = remoteVideoRef.current;
+    const audio = remoteAudioRef.current;
+    if (video) {
+      video.srcObject = remoteStream;
+      if (remoteStream) void video.play().catch(() => undefined);
+    }
+    if (audio) {
+      audio.srcObject = remoteStream;
+      if (remoteStream) void audio.play().catch(() => setCallError("Tap the call panel once to enable call audio."));
+    }
   }, [remoteStream]);
 
   function closePeer() {
@@ -35,6 +47,13 @@ export default function CallControls({ requestId, userId, counterpartHandle }: P
     setRemoteStream(null);
     setStatus("idle");
     pendingOfferRef.current = null;
+    pendingIceRef.current = [];
+  }
+
+  async function applyRemoteDescription(peer: RTCPeerConnection, description: RTCSessionDescriptionInit) {
+    await peer.setRemoteDescription(description);
+    const pending = pendingIceRef.current.splice(0);
+    for (const candidate of pending) await peer.addIceCandidate(candidate);
   }
 
   async function createPeer(callKind: CallKind) {
@@ -46,7 +65,17 @@ export default function CallControls({ requestId, userId, counterpartHandle }: P
       iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
     });
     stream.getTracks().forEach((track) => peer.addTrack(track, stream));
-    peer.ontrack = (event) => setRemoteStream(event.streams[0]);
+    peer.ontrack = (event) => {
+      const stream = event.streams[0] ?? new MediaStream([event.track]);
+      setRemoteStream(stream);
+    };
+    peer.onconnectionstatechange = () => {
+      if (peer.connectionState === "connected") setStatus("connected");
+      if (peer.connectionState === "failed") {
+        closePeer();
+        setCallError("Call connection failed. Check both users' network and permissions.");
+      }
+    };
     peer.onicecandidate = (event) => {
       if (event.candidate) {
         ws.emit({ type: "call_signal", request_id: requestId, signal: "ice", data: event.candidate.toJSON() });
@@ -59,6 +88,7 @@ export default function CallControls({ requestId, userId, counterpartHandle }: P
 
   async function startCall(callKind: CallKind) {
     try {
+      setCallError("");
       setKind(callKind);
       setStatus("calling");
       const peer = await createPeer(callKind);
@@ -72,6 +102,7 @@ export default function CallControls({ requestId, userId, counterpartHandle }: P
       });
     } catch {
       closePeer();
+      setCallError("Could not start the call. Allow microphone access and try again.");
     }
   }
 
@@ -79,16 +110,18 @@ export default function CallControls({ requestId, userId, counterpartHandle }: P
     const offer = pendingOfferRef.current;
     if (!offer) return;
     try {
+      setCallError("");
       setKind(incomingKind);
       setStatus("calling");
       const peer = await createPeer(incomingKind);
-      await peer.setRemoteDescription(offer);
+      await applyRemoteDescription(peer, offer);
       const answer = await peer.createAnswer();
       await peer.setLocalDescription(answer);
       ws.emit({ type: "call_signal", request_id: requestId, signal: "answer", data: answer });
       setStatus("connected");
     } catch {
       closePeer();
+      setCallError("Could not accept the call. Please try again.");
     }
   }
 
@@ -106,10 +139,19 @@ export default function CallControls({ requestId, userId, counterpartHandle }: P
         setIncomingKind(data.kind === "video" ? "video" : "audio");
         setStatus("incoming");
       } else if (event.signal === "answer" && peerRef.current) {
-        await peerRef.current.setRemoteDescription(event.data as RTCSessionDescriptionInit);
+        await applyRemoteDescription(peerRef.current, event.data as RTCSessionDescriptionInit);
         setStatus("connected");
-      } else if (event.signal === "ice" && peerRef.current && event.data) {
-        await peerRef.current.addIceCandidate(event.data as RTCIceCandidateInit);
+      } else if (event.signal === "ice" && event.data) {
+        const candidate = event.data as RTCIceCandidateInit;
+        if (peerRef.current?.remoteDescription) {
+          try {
+            await peerRef.current.addIceCandidate(candidate);
+          } catch {
+            pendingIceRef.current.push(candidate);
+          }
+        } else {
+          pendingIceRef.current.push(candidate);
+        }
       }
     });
     return off;
@@ -135,6 +177,7 @@ export default function CallControls({ requestId, userId, counterpartHandle }: P
           </svg>
         </button>
       </div>
+      {callError && <p className="fixed inset-x-4 top-16 z-50 mx-auto max-w-md rounded-xl border border-danger/40 bg-panel px-3 py-2 text-center text-xs text-danger">{callError}</p>}
       {status === "incoming" && (
         <div className="fixed inset-x-4 top-16 z-50 mx-auto max-w-md rounded-2xl border border-line bg-panel p-4 shadow-2xl">
           <p className="text-sm font-bold">@{counterpartHandle} is calling</p>
@@ -150,7 +193,7 @@ export default function CallControls({ requestId, userId, counterpartHandle }: P
           {kind === "video" && <video ref={remoteVideoRef} autoPlay playsInline className="mb-2 max-h-64 w-full rounded-xl bg-ink" />}
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted">{status === "calling" ? "Calling…" : "Connected"}</span>
-            {kind === "audio" && <audio ref={(node) => { if (node) node.srcObject = remoteStream; }} autoPlay />}
+            {kind === "audio" && <audio ref={remoteAudioRef} autoPlay playsInline />}
             <button type="button" onClick={hangup} className="rounded-full bg-danger px-4 py-2 text-xs font-bold text-white">End call</button>
           </div>
         </div>

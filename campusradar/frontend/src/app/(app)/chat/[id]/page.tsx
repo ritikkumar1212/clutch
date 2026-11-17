@@ -135,20 +135,34 @@ export default function ChatPage() {
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      const preferredMime = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/ogg;codecs=opus",
+      ].find((mime) => MediaRecorder.isTypeSupported(mime));
+      const recorder = preferredMime
+        ? new MediaRecorder(stream, { mimeType: preferredMime })
+        : new MediaRecorder(stream);
       const chunks: Blob[] = [];
       recorder.ondataavailable = (event) => {
         if (event.data.size) chunks.push(event.data);
       };
       recorder.onstop = () => {
-        const audio = new File([new Blob(chunks, { type: recorder.mimeType })], `voice-${Date.now()}.webm`, {
-          type: recorder.mimeType || "audio/webm",
+        if (!chunks.length) {
+          setComposerError("No audio was recorded. Check microphone permission and try again.");
+          return;
+        }
+        const mime = recorder.mimeType || preferredMime || "audio/webm";
+        const extension = mime.includes("ogg") ? "ogg" : "webm";
+        const audio = new File([new Blob(chunks, { type: mime })], `voice-${Date.now()}.${extension}`, {
+          type: mime,
         });
         void uploadFile(audio);
       };
+      recorder.onerror = () => setComposerError("Microphone recording failed. Please try again.");
       audioStreamRef.current = stream;
       recorderRef.current = recorder;
-      recorder.start();
+      recorder.start(250);
       setRecording(true);
     } catch {
       setComposerError("Microphone permission is required");

@@ -12,12 +12,23 @@ if ($LASTEXITCODE -ne 0) {
   exit $LASTEXITCODE
 }
 
-if ([string]::IsNullOrWhiteSpace($apiImage)) {
-  Write-Host "First run: building the backend image..." -ForegroundColor Yellow
+$backendFingerprint = (Get-ChildItem (Join-Path $projectRoot "backend") -Recurse -File |
+  Where-Object { $_.FullName -notmatch "\\(uploads|__pycache__|\.pytest_cache|\.venv)\\" } |
+  Sort-Object FullName |
+  Get-FileHash -Algorithm SHA256 |
+  ForEach-Object { $_.Hash }) -join ""
+$backendMarker = Join-Path $env:LOCALAPPDATA "CampusRadar\api-build.hash"
+$lastBackendFingerprint = if (Test-Path $backendMarker) { Get-Content $backendMarker -Raw } else { "" }
+$needsApiBuild = [string]::IsNullOrWhiteSpace($apiImage) -or $lastBackendFingerprint.Trim() -ne $backendFingerprint
+
+if ($needsApiBuild) {
+  Write-Host "First run or backend changes detected: building the backend image..." -ForegroundColor Yellow
   docker compose @composeArgs build api
   if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
   }
+  New-Item -ItemType Directory -Force -Path (Split-Path $backendMarker) | Out-Null
+  Set-Content -Path $backendMarker -Value $backendFingerprint -NoNewline
 } else {
   Write-Host "Backend image found: skipping build." -ForegroundColor Green
 }

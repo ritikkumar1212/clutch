@@ -12,6 +12,7 @@ class WsClient {
   private attempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private started = false;
+  private pending: unknown[] = [];
 
   start(): void {
     if (this.started) return;
@@ -35,6 +36,8 @@ class WsClient {
     }
     this.ws.onopen = () => {
       this.attempts = 0;
+      const pending = this.pending.splice(0);
+      for (const event of pending) this.sendRaw(event);
       // replay room subscriptions so live counters/chat survive reconnects
       for (const key of this.rooms) {
         const [type, id] = key.split("|");
@@ -74,7 +77,10 @@ class WsClient {
   private sendRaw(obj: unknown): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(obj));
+      return;
     }
+    if (this.pending.length < 100) this.pending.push(obj);
+    this.start();
   }
 
   on<K extends WsEventType>(type: K | "*", handler: (payload: WsEvents[K]) => void): () => void {
