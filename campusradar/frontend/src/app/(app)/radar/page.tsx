@@ -65,7 +65,7 @@ export default function RadarPage() {
           placeholder="Spill it. What do you need? e.g. 'Left my lab coat in the hostel, have a chem eval in 30 - anyone got a spare?'"
           className="w-full resize-none bg-transparent text-[15px] leading-relaxed text-slate-100 placeholder:text-muted/80 focus:outline-none"
         />
-        <div className="mt-3 flex items-center justify-between border-t border-line pt-3 text-xs text-muted"><span>Location is private until accepted</span><span>{description.length}/500</span></div>
+        <div className="mt-3 border-t border-line pt-3 text-xs text-muted">Location is private until accepted</div>
       </section>
 
       {me?.gender === "female" && <section className="mt-5">
