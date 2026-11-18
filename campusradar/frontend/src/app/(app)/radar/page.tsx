@@ -14,7 +14,6 @@ export default function RadarPage() {
   const [lng, setLng] = useState<number | null>(null);
   const [landmark, setLandmark] = useState<string | null>(null);
   const [femaleOnly, setFemaleOnly] = useState(false);
-  const [urgency, setUrgency] = useState("Need this in 10m");
   const [error, setError] = useState("");
   const [posting, setPosting] = useState(false);
 
@@ -63,29 +62,22 @@ export default function RadarPage() {
           onChange={(event) => setDescription(event.target.value)}
           rows={6}
           maxLength={500}
-          placeholder="Spill it. What do you need? e.g. ‘Left my lab coat in the hostel, have a chem eval in 30 — anyone got a spare?’"
+          placeholder="Spill it. What do you need? e.g. 'Left my lab coat in the hostel, have a chem eval in 30 - anyone got a spare?'"
           className="w-full resize-none bg-transparent text-[15px] leading-relaxed text-slate-100 placeholder:text-muted/80 focus:outline-none"
         />
-        <div className="mt-3 flex items-center justify-between border-t border-line pt-3 text-xs text-muted"><span>⌕  Location is private until accepted</span><span>{description.length}/500</span></div>
-      </section>
-
-      <section className="mt-5">
-        <p className="text-xs font-bold text-slate-200">◷ Time sensitivity</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {["Need this in 10m", "Next 30m", "Before 6 PM", "Today evening", "No rush"].map((option) => <button key={option} type="button" onClick={() => setUrgency(option)} className={`pressable rounded-full border px-3 py-2 text-[11px] font-bold ${urgency === option ? "border-neon bg-neon text-ink" : "border-line bg-panel text-muted"}`}>{option}</button>)}
-        </div>
+        <div className="mt-3 flex items-center justify-between border-t border-line pt-3 text-xs text-muted"><span>Location is private until accepted</span><span>{description.length}/500</span></div>
       </section>
 
       {me?.gender === "female" && <section className="mt-5">
         <p className="text-xs font-bold text-slate-200">Who can help?</p>
         <div className="mt-2 grid grid-cols-2 gap-2">
           <button type="button" onClick={() => setFemaleOnly(false)} className={`rounded-[14px] border py-3 text-sm font-black ${!femaleOnly ? "border-mint bg-mint/10 text-slate-100" : "border-line text-muted"}`}>Anyone</button>
-          <button type="button" onClick={() => setFemaleOnly(true)} className={`rounded-[14px] border py-3 text-sm font-black ${femaleOnly ? "border-neon bg-neon/10 text-neon" : "border-line text-muted"}`}>♧ Female helpers only</button>
+          <button type="button" onClick={() => setFemaleOnly(true)} className={`rounded-[14px] border py-3 text-sm font-black ${femaleOnly ? "border-neon bg-neon/10 text-neon" : "border-line text-muted"}`}>Female helpers only</button>
         </div>
       </section>}
 
       {error && <p className="mt-4 rounded-xl bg-danger/10 px-3 py-2 text-xs text-danger">{error}</p>}
-      <button onClick={post} disabled={posting} className="pressable mt-6 w-full rounded-[15px] bg-neon py-3.5 text-sm font-black text-ink disabled:opacity-50">{posting ? "Dropping your ping…" : "ϟ  Drop the ping"}</button>
+      <button onClick={post} disabled={posting} className="pressable mt-6 w-full rounded-[15px] bg-neon py-3.5 text-sm font-black text-ink disabled:opacity-50">{posting ? "Dropping your ping..." : "Drop the ping"}</button>
       <p className="mt-3 text-center text-[11px] text-muted">You can cancel an open ping from My tasks.</p>
     </main>
   );
