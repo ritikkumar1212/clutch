@@ -35,7 +35,6 @@ export default function RequestsPage() {
   const [loading, setLoading] = useState(true);
   const [pins, setPins] = useState<Record<string, string>>({});
   const [showPin, setShowPin] = useState<string | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -113,12 +112,7 @@ export default function RequestsPage() {
 
   const activeCreated = mine.created.filter((r) => r.status === "open" || r.status === "accepted");
   const activeHelping = mine.helping.filter((r) => r.status === "accepted");
-  const historyCreated = mine.created.filter((r) => r.status === "completed" || r.status === "cancelled" || r.status === "expired");
-  const historyHelping = mine.helping.filter((r) => r.status === "completed" || r.status === "cancelled" || r.status === "expired");
-  const historyCount = historyCreated.length + historyHelping.length;
-
   const row = (r: Card, kind: "created" | "helping") => {
-    const historyItem = r.status === "completed" || r.status === "cancelled" || r.status === "expired";
     return (
       <article key={r.id} className="slide-up surface p-4">
             <div className="flex items-center justify-between gap-2">
@@ -163,7 +157,7 @@ export default function RequestsPage() {
               href={`/chat/${r.id}`}
               className="pressable flex-1 rounded-[14px] bg-neon px-3 py-2.5 text-center text-sm font-black text-ink"
             >
-              {historyItem ? "View chat" : "Open chat"}
+              Open chat
             </Link>
           )}
           {kind === "created" && r.status === "open" && (
@@ -211,27 +205,6 @@ export default function RequestsPage() {
             )}
           </section>
 
-          <section className="border-t border-line pt-4">
-            <button
-              type="button"
-              onClick={() => setShowHistory((open) => !open)}
-              className="flex w-full items-center justify-between text-left"
-            >
-              <h2 className="text-xs font-black uppercase tracking-wider text-muted">History ({historyCount})</h2>
-              <span className="text-xs text-muted">{showHistory ? "hide" : "show"}</span>
-            </button>
-            {showHistory && (
-              <div className="mt-2 space-y-3">
-                {historyCreated.map((r) => row(r, "created"))}
-                {historyHelping.map((r) => row(r, "helping"))}
-                {historyCount === 0 && (
-                  <p className="rounded-2xl border border-dashed border-line px-4 py-5 text-center text-sm text-muted">
-                    Completed tasks will appear here.
-                  </p>
-                )}
-              </div>
-            )}
-          </section>
         </div>
       )}
     </main>

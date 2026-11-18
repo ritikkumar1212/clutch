@@ -354,10 +354,13 @@ async def scenario() -> None:
         check("open request created for expiry test", r.status_code == 200)
         print("  … waiting ~80s for janitor (REQUEST_TTL_MINUTES=1 in test env)")
         await asyncio.sleep(80)
-        mine = (await c.get(f"{BASE}/requests/mine", headers=rq_tok)).json()
-        statuses = {x["id"]: x["status"] for x in mine["created"]}
+        detail = await c.get(f"{BASE}/requests/{exp_id}", headers=rq_tok)
         check("unaccepted request auto-expired (rule 7)",
-              statuses.get(exp_id) == "expired", statuses.get(exp_id, "missing"))
+              detail.status_code == 200 and detail.json().get("status") == "expired",
+              detail.json() if detail.status_code == 200 else detail.status_code)
+        mine = (await c.get(f"{BASE}/requests/mine", headers=rq_tok)).json()
+        check("expired request is excluded from active tasks",
+              exp_id not in {x["id"] for x in mine["created"]}, mine)
 
         for sock in (ws_h, ws_h2, ws_rq):
             await sock.close()
