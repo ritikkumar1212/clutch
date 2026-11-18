@@ -6,38 +6,26 @@ import { useRouter } from "next/navigation";
 import { api, clearSession, getUser, updateUser } from "@/lib/api";
 import { GenderBadge } from "@/components/Badges";
 import ThemeToggle from "@/components/ThemeToggle";
-import { fmtClock } from "@/lib/geo";
-import type { LedgerRow, RequestCard, User, WsEvents } from "@/lib/types";
+import type { RequestCard, User, WsEvents } from "@/lib/types";
 import { ws } from "@/lib/ws";
 
 interface Mine { created: RequestCard[]; helping: RequestCard[] }
-type HistoryEntry = { kind: "task"; task: RequestCard; role: string } | { kind: "points"; ledger: LedgerRow };
 
 export default function ProfilePage() {
   const router = useRouter();
   const [me, setMe] = useState<User | null>(null);
   const [mine, setMine] = useState<Mine>({ created: [], helping: [] });
-  const [ledger, setLedger] = useState<LedgerRow[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     setMe(getUser());
     api<User>("/users/me").then((user) => { setMe(user); updateUser(user); }).catch(() => {});
     api<Mine>("/requests/mine").then(setMine).catch(() => {});
-    api<LedgerRow[]>("/users/me/ledger").then(setLedger).catch(() => {});
     const offPoints = ws.on("points_awarded", (event: WsEvents["points_awarded"]) => {
       setMe((current) => current ? { ...current, help_points: event.total } : current);
-      api<LedgerRow[]>("/users/me/ledger").then(setLedger).catch(() => {});
     });
     return offPoints;
   }, []);
 
-  const taskHistory = [
-    ...mine.created.filter((task) => ["completed", "cancelled", "expired"].includes(task.status)).map((task) => ({ task, role: "asked" })),
-    ...mine.helping.filter((task) => ["completed", "cancelled", "expired"].includes(task.status)).map((task) => ({ task, role: "helping" })),
-  ];
-  const history: HistoryEntry[] = [...taskHistory.map(({ task, role }) => ({ kind: "task" as const, task, role })), ...ledger.map((entry) => ({ kind: "points" as const, ledger: entry }))]
-    .sort((a, b) => new Date(b.kind === "task" ? b.task.created_at || 0 : b.ledger.created_at).getTime() - new Date(a.kind === "task" ? a.task.created_at || 0 : a.ledger.created_at).getTime());
   const activeCount = mine.created.filter((task) => ["open", "accepted"].includes(task.status)).length + mine.helping.filter((task) => task.status === "accepted").length;
 
   function logout() { clearSession(); router.replace("/login"); }
@@ -57,18 +45,12 @@ export default function ProfilePage() {
 
       <section className="surface mt-3 p-4"><p className="text-sm font-black text-neon">♧ Clutch Guard</p><p className="mt-1 text-xs leading-relaxed text-muted">Your alias stays anonymous. Chats lock after completion and live coordinates are only shared with an accepted task partner.</p></section>
 
-      <button type="button" onClick={() => setShowHistory((open) => !open)} className="mt-6 flex w-full items-center justify-between border-b border-line pb-3 text-left"><span className="text-sm font-black">History</span><span className="text-xs text-muted">{showHistory ? "hide" : "show"}</span></button>
-      {showHistory && <div className="mt-3 space-y-2">{history.length === 0 ? <p className="surface px-4 py-5 text-center text-sm text-muted">Completed help will appear here.</p> : history.map((entry) => entry.kind === "task" ? <TaskRow key={`task-${entry.task.id}`} task={entry.task} role={entry.role} /> : <PointsRow key={`points-${entry.ledger.id}`} ledger={entry.ledger} />)}</div>}
       <button onClick={logout} className="mb-6 mt-6 w-full rounded-[14px] border border-danger/40 py-3 text-sm font-bold text-danger transition active:scale-95">Log out</button>
     </main>
   );
 }
 
 function Stat({ value, label, icon }: { value: string; label: string; icon: string }) { return <div className="rounded-[16px] border border-line bg-panel px-2 py-3 text-center"><span className="text-lg text-neon">{icon}</span><p className="mt-1 text-base font-black">{value}</p><p className="mt-0.5 text-[10px] text-muted">{label}</p></div>; }
-
-function TaskRow({ task, role }: { task: RequestCard; role: string }) { const canOpenChat = task.status === "accepted" || task.status === "completed"; return <div className="rounded-[17px] border border-line bg-panel p-3"><div className="flex items-center justify-between gap-2"><span className="text-xs font-bold">{role === "helping" ? "You helped someone" : "You asked for help"}</span><span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold uppercase text-muted">{task.status}</span></div><p className="mt-1.5 truncate text-sm text-slate-300">{task.description}</p>{canOpenChat && <Link href={`/chat/${task.id}`} className="mt-2 block rounded-lg bg-neon px-3 py-2 text-center text-xs font-bold text-ink">{task.status === "completed" ? "View chat" : "Open chat"}</Link>}</div>; }
-
-function PointsRow({ ledger }: { ledger: LedgerRow }) { const labels: Record<string, string> = { signup_bonus: "Welcome bonus", completion: "Helped a campusmate", adjustment: "Adjustment" }; return <div className="flex items-center justify-between rounded-[17px] border border-line bg-panel px-3 py-3"><div><p className="text-xs font-bold">{labels[ledger.reason] || ledger.reason}</p><p className="text-[11px] text-muted">{ledger.note || "Campus activity"} · {fmtClock(ledger.created_at)}</p></div><span className="text-sm font-black text-mint">+{ledger.points}</span></div>; }
 
 function AvatarPicker({ user, onChange }: { user: User; onChange: (user: User) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);

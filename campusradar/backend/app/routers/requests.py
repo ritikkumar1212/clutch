@@ -92,13 +92,23 @@ async def my_feed(user: User = Depends(get_complete_user),
 @router.get("/mine")
 async def mine(user: User = Depends(get_complete_user),
                db: AsyncSession = Depends(get_db)) -> dict:
-    """Everything I created + everything I accepted, newest first."""
+    """Active requests I created or accepted, newest first.
+
+    Historical requests are intentionally not returned. The client can use
+    this endpoint only for currently active coordination tasks.
+    """
     created = (await db.execute(
-        select(HelpRequest).where(HelpRequest.requester_id == user.id)
+        select(HelpRequest).where(
+            HelpRequest.requester_id == user.id,
+            HelpRequest.status.in_((RequestStatus.open, RequestStatus.accepted)),
+        )
         .order_by(HelpRequest.created_at.desc()).limit(30)
     )).scalars().all()
     helping = (await db.execute(
-        select(HelpRequest).where(HelpRequest.helper_id == user.id)
+        select(HelpRequest).where(
+            HelpRequest.helper_id == user.id,
+            HelpRequest.status == RequestStatus.accepted,
+        )
         .order_by(HelpRequest.accepted_at.desc()).limit(30)
     )).scalars().all()
 

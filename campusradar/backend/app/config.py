@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     # --- product rules -----------------------------------------------------
     REQUEST_TTL_MINUTES: int = 20        # rule 7: unaccepted requests expire
-    ACTIVE_REQUEST_MAX_AGE_HOURS: int = 2  # stale open/accepted tasks move to history
+    ACTIVE_REQUEST_MAX_AGE_HOURS: int = 2  # stale open/accepted tasks are cancelled
     CHAT_LOCK_MINUTES: int = 30          # rule 5: auto-lock after completion
     CHAT_PURGE_HOURS: int = 24           # ephemeral purge after lock
     HEARTBEAT_TTL_SECONDS: int = 90      # presence lease per heartbeat
