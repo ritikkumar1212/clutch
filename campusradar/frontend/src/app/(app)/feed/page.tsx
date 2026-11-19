@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import RequestCard from "@/components/RequestCard";
+import ClutchMotionLogo from "@/components/ClutchMotionLogo";
 import { api, getUser, updateUser } from "@/lib/api";
 import { ws } from "@/lib/ws";
 import type { RequestCard as Card, User, WsEvents } from "@/lib/types";
@@ -54,7 +55,11 @@ export default function FeedPage() {
     <main className="px-4 pb-4 pt-2">
       <header className="pt-4">
         <div className="flex items-center justify-between">
-          <h1 className="font-display text-3xl font-bold tracking-tight text-ambertint-soft">Clutch</h1>
+          <div className="flex items-center gap-2.5">
+            <ClutchMotionLogo width={72} height={34} className="shrink-0" title="Clutch Motion Variant" />
+            <span className="h-8 w-px bg-ambertint-soft/30" aria-hidden="true" />
+            <h1 className="font-display text-3xl font-bold tracking-tight text-ambertint-soft">Clutch</h1>
+          </div>
           <span className="chip bg-emeraldtint-glow px-3 py-1.5 text-emeraldtint-muted">♧ Campus verified</span>
         </div>
         <h2 className="mt-4 font-display text-2xl font-bold leading-tight">Right on time, everytime.</h2>
