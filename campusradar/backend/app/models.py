@@ -44,12 +44,6 @@ class RequestStatus(str, enum.Enum):
     cancelled = "cancelled"
 
 
-class Urgency(str, enum.Enum):
-    normal = "normal"
-    urgent = "urgent"
-    emergency = "emergency"
-
-
 class LedgerReason(str, enum.Enum):
     signup_bonus = "signup_bonus"
     completion = "completion"
@@ -128,9 +122,6 @@ class HelpRequest(Base):
     lat: Mapped[float] = mapped_column(nullable=False)
     lng: Mapped[float] = mapped_column(nullable=False)
     radius_m: Mapped[int] = mapped_column(Integer, default=500, nullable=False)
-    # Legacy storage for old rows; request APIs no longer expose urgency.
-    urgency: Mapped[Urgency] = mapped_column(Enum(Urgency, name="urgency_enum", native_enum=True),
-                                             default=Urgency.normal, server_default="normal", nullable=False)
     gender_filter: Mapped[str] = mapped_column(String(16), default="everyone", nullable=False)
     tip_amount: Mapped[float] = mapped_column(Numeric(10, 2), default=0, nullable=False)
     status: Mapped[RequestStatus] = mapped_column(Enum(RequestStatus, name="request_status", native_enum=True),

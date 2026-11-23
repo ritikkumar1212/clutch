@@ -153,6 +153,20 @@ class RequestOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class HistoryItemOut(BaseModel):
+    id: str
+    description: str
+    landmark: str | None
+    status: str
+    role: Literal["helper", "requester"]
+    other_user: PublicUserOut | None = None
+    created_at: datetime | None = None
+    accepted_at: datetime | None = None
+    completed_at: datetime | None = None
+    points_awarded: int = 0
+    completion_pin: str | None = None
+
+
 class RequestDetailOut(RequestOut):
     viewer_count: int | None = None     # only for the requester
     viewers_hint: str | None = None

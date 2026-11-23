@@ -28,7 +28,6 @@ export default function RequestCard({ req, variant, busy, onAccept }: Props) {
   const handle = req.requester?.handle ?? "Campusmate";
   const initials = handle.slice(0, 2).toUpperCase();
   const time = req.created_at ? fmtClock(req.created_at) : "just now";
-  const urgent = left.startsWith("0m") || left.endsWith("s left");
 
   return (
     <article className="card slide-up p-4 transition hover:border-ambertint-soft/30 active:scale-[0.99]">
@@ -42,7 +41,7 @@ export default function RequestCard({ req, variant, busy, onAccept }: Props) {
                 <span className="text-emeraldtint-muted">♨</span> Campus verified <span className="text-ink-600">·</span> {time}
               </p>
             </div>
-            <span className={`chip shrink-0 ${urgent ? "bg-ambertint-glow text-ambertint-soft" : "bg-emeraldtint-glow text-emeraldtint-muted"}`}>
+            <span className="chip shrink-0 bg-emeraldtint-glow text-emeraldtint-muted">
               {left}
             </span>
           </div>

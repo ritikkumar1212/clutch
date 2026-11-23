@@ -1,4 +1,4 @@
-"""Help Points rewards engine: 10 points per completed help, ledger, leaderboard."""
+"""Help Points rewards engine: one flat completion value, ledger, leaderboard."""
 from __future__ import annotations
 
 from app.models import enum_val
@@ -13,7 +13,7 @@ from app.services.geo import cache_user_meta, notify_user
 
 
 def completion_points() -> int:
-    return 10
+    return settings.BASE_POINTS
 
 
 async def award_completion(
@@ -27,7 +27,7 @@ async def award_completion(
         request_id=request_id,
         points=points,
         reason=LedgerReason.completion,
-        note="10 points for completed help",
+        note=f"{points} points for completed help",
     ))
     await db.commit()
     await cache_user_meta(helper.id, enum_val(helper.gender), helper.handle, helper.help_points)

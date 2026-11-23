@@ -385,7 +385,7 @@ export default function ChatPage() {
             onClick={verify} disabled={verifyBusy || pin.length !== 4}
             className="mt-2 w-full rounded-lg bg-violet py-2.5 text-sm font-black text-white transition active:scale-95 disabled:opacity-40"
           >
-            {verifyBusy ? "Verifying…" : "Verify & complete (+10 base pts)"}
+            {verifyBusy ? "Verifying…" : "Verify & complete (+10 pts)"}
           </button>
         </div>
       )}

@@ -22,7 +22,6 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
-  CREATE TYPE urgency_enum AS ENUM ('normal', 'urgent', 'emergency');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
@@ -88,7 +87,6 @@ CREATE TABLE IF NOT EXISTS help_requests (
   lat           DOUBLE PRECISION NOT NULL,   -- TARGET pin only — never the requester's live location
   lng           DOUBLE PRECISION NOT NULL,
   radius_m      INTEGER NOT NULL DEFAULT 500 CHECK (radius_m IN (200, 500, 1000, 2000)),
-  urgency       urgency_enum NOT NULL DEFAULT 'normal',
   gender_filter TEXT NOT NULL DEFAULT 'everyone' CHECK (gender_filter IN ('everyone', 'female_only')),
   tip_amount    NUMERIC(10,2) NOT NULL DEFAULT 0,
   status        request_status NOT NULL DEFAULT 'open',
@@ -111,7 +109,7 @@ CREATE TABLE IF NOT EXISTS help_points_ledger (
   id         BIGSERIAL PRIMARY KEY,
   user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   request_id UUID REFERENCES help_requests(id) ON DELETE SET NULL,
-  points     INTEGER NOT NULL,       -- +10 base + urgency bonus, or +5 signup bonus
+  points     INTEGER NOT NULL,       -- flat completion points, or +5 signup bonus
   reason     ledger_reason NOT NULL,
   note       TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
