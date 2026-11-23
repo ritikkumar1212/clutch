@@ -203,7 +203,7 @@ async def scenario() -> None:
         r = await c.post(f"{BASE}/requests", headers=rq_tok, json={
             "category": "medicine", "description": "Need paracetamol from the shop near Student Centre",
             "landmark": "Gate No. 2, Student Centre", "lat": req_lat, "lng": req_lng,
-            "radius_m": 500, "urgency": "urgent", "gender_filter": "everyone", "tip_amount": 20,
+            "radius_m": 500, "gender_filter": "everyone", "tip_amount": 20,
         })
         created = r.json()
         check("request created (open, TTL set)", r.status_code == 200 and created["status"] == "open",
@@ -226,7 +226,7 @@ async def scenario() -> None:
         r = await c.post(f"{BASE}/requests", headers=rq_tok, json={
             "category": "ride", "description": "Lift needed to the sector 11 market ASAP",
             "landmark": "UIET Block A", "lat": req_lat, "lng": req_lng,
-            "radius_m": 2000, "urgency": "emergency", "gender_filter": "female_only", "tip_amount": 30,
+            "radius_m": 2000, "gender_filter": "female_only", "tip_amount": 30,
         })
         foid = r.json()["id"]
         male_feed = (await c.get(f"{BASE}/requests/feed", headers=hp_tok)).json()
@@ -328,8 +328,8 @@ async def scenario() -> None:
 
         r = await c.post(f"{BASE}/requests/{created['id']}/verify-pin", headers=hp_tok, json={"pin": pin})
         body = r.json()
-        check("correct PIN completes + awards 15 pts (10 base + 5 urgent)",
-              r.status_code == 200 and body.get("points_awarded") == 15,
+        check("correct PIN completes + awards flat points",
+              r.status_code == 200 and body.get("points_awarded") == 10,
               f"awarded={body.get('points_awarded')}")
 
         r = await c.post(f"{BASE}/requests/{created['id']}/verify-pin", headers=h2_tok, json={"pin": pin})
@@ -348,7 +348,7 @@ async def scenario() -> None:
         r = await c.post(f"{BASE}/requests", headers=rq_tok, json={
             "category": "printout", "description": "Print 10 pages of DBMS notes, spiral bound",
             "landmark": "Library", "lat": req_lat, "lng": req_lng,
-            "radius_m": 200, "urgency": "normal", "gender_filter": "everyone", "tip_amount": 10,
+            "radius_m": 200, "gender_filter": "everyone", "tip_amount": 10,
         })
         exp_id = r.json()["id"]
         check("open request created for expiry test", r.status_code == 200)

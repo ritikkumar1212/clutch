@@ -37,6 +37,20 @@ export interface RequestCard {
   has_pin?: boolean;
 }
 
+export interface HistoryItem {
+  id: string;
+  description: string;
+  landmark: string | null;
+  status: Extract<RequestStatus, "completed" | "cancelled" | "expired">;
+  role: "helper" | "requester";
+  other_user: PublicUser | null;
+  created_at: string | null;
+  accepted_at: string | null;
+  completed_at: string | null;
+  points_awarded: number;
+  completion_pin: string | null;
+}
+
 export interface ChatMessage {
   id: number;
   request_id: string;

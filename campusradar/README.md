@@ -1,7 +1,7 @@
 # CampusRadar — UIET Chandigarh Help Network
 
 A hyper-local, peer-to-peer **campus help network PWA**. Students drop a
-target pin on a map, pick a radius, and broadcast urgent help requests
+target pin on a map, pick a radius, and broadcast campus help requests
 (rides, medicine runs, printouts, chargers, study help, errands). Nearby
 online students get matched in real time, accept, coordinate in an ephemeral
 chat, verify the meet-up with a 4-digit **Handshake PIN**, and earn
@@ -63,7 +63,7 @@ Full rule→code mapping: [`docs/05-privacy-enforcement.md`](docs/05-privacy-enf
 ## Phase 1 — architecture, folder structure, database & Redis schema
 
 - [`docs/01-architecture.md`](docs/01-architecture.md) — system diagram, folder map, request state machine, event flow.
-- [`docs/02-database-schema.sql`](docs/02-database-schema.sql) — canonical PostgreSQL schema (enums `gender_enum`, `request_status`, `urgency_enum`, `ledger_reason`; tables `users`, `phone_otps`, `push_subscriptions`, `help_requests`, `help_points_ledger`, `chat_messages`). **Note: there is intentionally no table for live user coordinates.**
+- [`docs/02-database-schema.sql`](docs/02-database-schema.sql) — canonical PostgreSQL schema (enums `gender_enum`, `request_status`, `ledger_reason`; tables `users`, `phone_otps`, `push_subscriptions`, `help_requests`, `help_points_ledger`, `chat_messages`). **Note: there is intentionally no table for live user coordinates.**
 - [`docs/03-redis-design.md`](docs/03-redis-design.md) — every key, TTL and the matching pipeline:
   - `geo:helpers` (GEO) + `helper:expiry` (ZSET lease) + `user:meta:{uid}` (gender cache)
   - `feed:{uid}` (targeted feed ZSET) + `subs:{id}` (reverse index for lock/expire fan-out)
@@ -140,7 +140,7 @@ npm run dev                                          # http://localhost:3000
 4. **Requester**: Radar → tap the map where help is needed → describe the need → **Broadcast request**.
 5. Helper: the card drops into the feed instantly (WS `new_request`) + a web-push if the tab is closed. **Accept & help** → ephemeral chat opens.
 6. Requester: Tasks screen shows *"1 user is currently viewing your request"* turning into the locked state; reveal the **Handshake PIN**.
-7. Chat both ways (quick-reply chips), then helper enters the PIN → **+15 Help Points** (+10 base +5 urgent), ledger row, leaderboard updates.
+7. Chat both ways (quick-reply chips), then helper enters the PIN → **flat Help Points**, ledger row, leaderboard updates.
 8. Requester sees the one-tap **Pay ₹20 via UPI** button (`upi://pay?pa=helper@upi&am=20.00&cu=INR`).
 9. Post another request and don't accept it — the janitor flips it to **expired** after 20 minutes and removes it from every feed.
 

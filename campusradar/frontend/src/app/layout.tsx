@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "CampusRadar — UIET Help Network",
   description:
-    "Hyper-local, peer-to-peer help network for UIET Chandigarh. Post urgent requests, nearby students accept, earn Help Points.",
+    "Hyper-local, peer-to-peer help network for UIET Chandigarh. Post campus requests, nearby students accept, earn Help Points.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
